@@ -1,0 +1,222 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --background: hsl(0 0% 98%);
+  --foreground: hsl(222 24% 15%);
+  --card: hsl(0 0% 100%);
+  --card-foreground: hsl(222 24% 15%);
+  --popover: hsl(0 0% 100%);
+  --popover-foreground: hsl(222 24% 15%);
+  --primary: hsl(216 84% 25%);
+  --primary-foreground: hsl(0 0% 98%);
+  --secondary: hsl(178 42% 35%);
+  --secondary-foreground: hsl(0 0% 98%);
+  --muted: hsl(210 15% 85%);
+  --muted-foreground: hsl(215 16% 47%);
+  --accent: hsl(25 95% 53%);
+  --accent-foreground: hsl(0 0% 98%);
+  --destructive: hsl(0 72% 51%);
+  --destructive-foreground: hsl(0 0% 98%);
+  --border: hsl(214 32% 91%);
+  --input: hsl(214 32% 91%);
+  --ring: hsl(216 84% 25%);
+  --chart-1: hsl(216 84% 25%);
+  --chart-2: hsl(178 42% 35%);
+  --chart-3: hsl(25 95% 53%);
+  --chart-4: hsl(147 72% 29%);
+  --chart-5: hsl(0 72% 51%);
+  --sidebar: hsl(0 0% 100%);
+  --sidebar-foreground: hsl(222 24% 15%);
+  --sidebar-primary: hsl(216 84% 25%);
+  --sidebar-primary-foreground: hsl(0 0% 98%);
+  --sidebar-accent: hsl(25 95% 53%);
+  --sidebar-accent-foreground: hsl(0 0% 98%);
+  --sidebar-border: hsl(214 32% 91%);
+  --sidebar-ring: hsl(216 84% 25%);
+  --font-sans: 'Inter', system-ui, sans-serif;
+  --font-serif: Georgia, serif;
+  --font-mono: Menlo, monospace;
+  --radius: 8px;
+  --shadow-2xs: 0px 1px 2px 0px hsl(0 0% 0% / 0.05);
+  --shadow-xs: 0px 1px 2px 0px hsl(0 0% 0% / 0.05);
+  --shadow-sm: 0px 1px 2px 0px hsl(0 0% 0% / 0.05), 0px 1px 3px 0px hsl(0 0% 0% / 0.1);
+  --shadow: 0px 1px 3px 0px hsl(0 0% 0% / 0.1), 0px 1px 2px 0px hsl(0 0% 0% / 0.06);
+  --shadow-md: 0px 4px 6px -1px hsl(0 0% 0% / 0.1), 0px 2px 4px -1px hsl(0 0% 0% / 0.06);
+  --shadow-lg: 0px 10px 15px -3px hsl(0 0% 0% / 0.1), 0px 4px 6px -2px hsl(0 0% 0% / 0.05);
+  --shadow-xl: 0px 20px 25px -5px hsl(0 0% 0% / 0.1), 0px 10px 10px -5px hsl(0 0% 0% / 0.04);
+  --shadow-2xl: 0px 25px 50px -12px hsl(0 0% 0% / 0.25);
+  --tracking-normal: 0em;
+  --spacing: 0.25rem;
+}
+
+.dark {
+  --background: hsl(0 0% 5%);
+  --foreground: hsl(200 6.6667% 91.1765%);
+  --card: hsl(228 9.8039% 10%);
+  --card-foreground: hsl(0 0% 85.0980%);
+  --popover: hsl(0 0% 5%);
+  --popover-foreground: hsl(200 6.6667% 91.1765%);
+  --primary: hsl(216 84% 35%);
+  --primary-foreground: hsl(0 0% 98%);
+  --secondary: hsl(178 42% 45%);
+  --secondary-foreground: hsl(0 0% 98%);
+  --muted: hsl(0 0% 15%);
+  --muted-foreground: hsl(210 3.3898% 46.2745%);
+  --accent: hsl(25 95% 53%);
+  --accent-foreground: hsl(0 0% 98%);
+  --destructive: hsl(0 72% 51%);
+  --destructive-foreground: hsl(0 0% 98%);
+  --border: hsl(210 5.2632% 20%);
+  --input: hsl(210 5.2632% 20%);
+  --ring: hsl(216 84% 35%);
+  --chart-1: hsl(216 84% 35%);
+  --chart-2: hsl(178 42% 45%);
+  --chart-3: hsl(25 95% 53%);
+  --chart-4: hsl(147 72% 39%);
+  --chart-5: hsl(0 72% 51%);
+  --sidebar: hsl(228 9.8039% 10%);
+  --sidebar-foreground: hsl(0 0% 85.0980%);
+  --sidebar-primary: hsl(216 84% 35%);
+  --sidebar-primary-foreground: hsl(0 0% 98%);
+  --sidebar-accent: hsl(25 95% 53%);
+  --sidebar-accent-foreground: hsl(0 0% 98%);
+  --sidebar-border: hsl(210 5.2632% 20%);
+  --sidebar-ring: hsl(216 84% 35%);
+  --font-sans: 'Inter', system-ui, sans-serif;
+  --font-serif: Georgia, serif;
+  --font-mono: Menlo, monospace;
+  --radius: 8px;
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply font-sans antialiased bg-background text-foreground;
+  }
+}
+
+/* Custom styles for CrowdCare */
+.gradient-bg {
+  background: linear-gradient(135deg, hsl(216 84% 25%) 0%, hsl(178 42% 35%) 100%);
+}
+
+.card-hover {
+  transition: all 0.2s ease-in-out;
+}
+
+.card-hover:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
+}
+
+.status-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.25rem 0.75rem;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  font-weight: 500;
+}
+
+.status-new { 
+  background-color: hsl(45 93% 47%); 
+  color: hsl(26 83% 14%); 
+}
+
+.status-in-progress { 
+  background-color: hsl(213 94% 68%); 
+  color: hsl(216 84% 25%); 
+}
+
+.status-resolved { 
+  background-color: hsl(142 69% 58%); 
+  color: hsl(142 72% 29%); 
+}
+
+.status-closed { 
+  background-color: hsl(210 15% 85%); 
+  color: hsl(215 16% 47%); 
+}
+
+.status-duplicate { 
+  background-color: hsl(280 67% 81%); 
+  color: hsl(280 67% 31%); 
+}
+
+/* Line clamp utilities */
+.line-clamp-1 {
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 1;
+}
+
+.line-clamp-2 {
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+.line-clamp-3 {
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+}
+
+/* Mobile responsive utilities */
+@media (max-width: 768px) {
+  .mobile-view { 
+    max-width: 375px; 
+  }
+  .desktop-only { 
+    display: none; 
+  }
+}
+
+@media (min-width: 769px) {
+  .mobile-only { 
+    display: none; 
+  }
+  .desktop-view { 
+    min-width: 1024px; 
+  }
+}
+
+/* Animation for loading states */
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: .5;
+  }
+}
+
+.animate-pulse {
+  animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: hsl(var(--muted));
+}
+
+::-webkit-scrollbar-thumb {
+  background: hsl(var(--muted-foreground));
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: hsl(var(--primary));
+}
