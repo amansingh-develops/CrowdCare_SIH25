@@ -1,0 +1,158 @@
+You are an expert full-stack engineer and software architect.
+Build a production-ready full-stack web app called CrowdCare — a Crowdsourced Civic Issue Reporting & Resolution System.
+Deliver complete working code, configs, docs, tests, and deployment scripts. Follow these detailed requirements:
+
+High-Level Objectives
+
+Citizen-facing PWA / mobile web app for:
+
+One-tap reporting: photos (EXIF + GPS), MCQs, optional voice.
+
+Report tracking, contributor badges, and leaderboards.
+
+Admin/Municipality Dashboard for:
+
+Department-wise login, SLA tracking, routing, geo-verified closure proofs, and metrics.
+
+Scalable backend:
+
+REST APIs + Open311-style endpoints.
+
+AI-powered pipeline: summary, category detection, urgency scoring, duplicate detection.
+
+Real-time routing engine + push notifications.
+
+Analytics Portal:
+
+Public map with heatmaps, hotspots, and SLA trends.
+
+Deployment-ready:
+
+Docker, Kubernetes manifests, CI/CD, seed data, Postman, Swagger/OpenAPI docs.
+
+Core Features & Behavior
+1. User Flows (PWA)
+
+Sign up / login (email + mobile OTP fallback).
+
+Create/edit profile with contribution stats, badges, and leaderboards.
+
+Report an issue:
+
+Select category, capture/upload image(s) (mobile camera support).
+
+Auto-extract EXIF GPS or Detect My Location via browser geolocation.
+
+Optional short voice or text description.
+
+Quick MCQs for severity & duration (e.g., “How long has this issue existed?”).
+
+AI-powered report summary:
+
+Generate clean title + summary + tags automatically.
+
+View local public feed & map:
+
+Upvote (+1) or repost existing reports.
+
+Track status updates and SLA progress.
+
+2. Admin Flows (Dashboard)
+
+RBAC login: departmental accounts + role-based access.
+
+Auto-routing:
+
+Assign tickets based on category + geo-fencing.
+
+SLA deadlines set dynamically based on urgency.
+
+Geo-tagged closure proofs:
+
+Admin must upload closure images with verified EXIF GPS before marking “Resolved”.
+
+Audit trails:
+
+Maintain change logs, reassign issues if needed.
+
+3. AI & Automation
+
+Image verification:
+
+Validate EXIF, detect tampering, and ensure GPS consistency.
+
+Report classification:
+
+Detect category + urgency score + deduplicate similar reports (fuzzy matching).
+
+Auto-summary generator:
+
+Create concise, human-readable summaries and tags.
+
+Offline support:
+
+Store unsent reports locally in IndexedDB and sync automatically when online.
+
+4. Data & Storage
+
+Store media files in S3/MinIO with lifecycle policies.
+
+Use PostgreSQL + PostGIS for spatial queries.
+
+Use Redis for queues, caching, and rate-limiting.
+
+Integrate ElasticSearch for search + duplicate detection (optional).
+
+5. APIs & Integrations
+
+Open311-style REST API endpoints.
+
+Swagger/OpenAPI docs for API reference.
+
+Push notifications: Web Push + Firebase optional.
+
+Export analytics data in CSV/JSON for open data initiatives.
+
+6. Security & Reliability
+
+JWT + refresh tokens authentication.
+
+RBAC for admin/department access.
+
+Input validation, rate-limiting, XSS & SQL injection protections.
+
+Logging + monitoring integrations.
+
+Unit, integration, and E2E tests using Cypress or Playwright.
+
+7. DevOps & Deployment
+
+Docker Compose for local development.
+
+Kubernetes manifests for production deployment.
+
+CI/CD pipeline:
+
+GitHub Actions for linting, testing, building, and deploying.
+
+Terraform scripts (optional):
+
+Provision RDS, S3, Redis, and deployment infra.
+
+Tech Stack (Mandatory)
+
+Frontend → React + TypeScript + Tailwind + PWA + IndexedDB.
+
+Backend → FastAPI + SQLAlchemy + Alembic + PostGIS.
+
+AI Microservice → FastAPI + HuggingFace transformers + OpenCV + Redis worker.
+
+Database → PostgreSQL + PostGIS.
+
+Media Storage → MinIO (local) + S3-compatible APIs.
+
+Maps → Leaflet or Mapbox GL.
+
+Testing → Jest, React Testing Library, Cypress/Playwright.
+
+Docs → OpenAPI, Postman, architecture.md.
