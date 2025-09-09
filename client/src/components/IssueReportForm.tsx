@@ -70,7 +70,11 @@ export function IssueReportForm({ onSuccess, className }: IssueReportFormProps) 
         title: "Success",
         description: "Issue reported successfully!",
       });
+      // Invalidate all issue-related queries to refresh both citizen and admin panels
       queryClient.invalidateQueries({ queryKey: ['/api/issues'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/users/me/issues'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/issues/nearby'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/analytics/stats'] });
       form.reset();
       setImages([]);
       onSuccess?.();
@@ -234,7 +238,7 @@ export function IssueReportForm({ onSuccess, className }: IssueReportFormProps) 
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Location</FormLabel>
-                  <div className="flex space-x-2">
+                  <div className="flex flex-col sm:flex-row gap-2">
                     <FormControl>
                       <Input
                         placeholder="Enter address or use GPS"
@@ -261,6 +265,27 @@ export function IssueReportForm({ onSuccess, className }: IssueReportFormProps) 
             <div>
               <label className="block text-sm font-medium mb-2">Photo Evidence</label>
               <div className="space-y-4">
+                <div className="bg-red-50 border border-red-200 text-red-800 rounded-lg p-3 text-sm">
+                  <div className="font-semibold mb-1">Important instruction</div>
+                  <div>
+                    <img
+                      src="/gps-map-camera-logo.png"
+                      alt="GPS Map Camera"
+                      className="inline-block w-5 h-5 mr-2 align-[-2px]"
+                      onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }}
+                    />
+                    For precise location detection from photo, ensure Location is enabled in your camera settings before taking the photo.
+                    Alternatively, capture using the Google Maps camera. If you don't have it, download it from the
+                    {' '}<a
+                      href="https://play.google.com/store/apps/details?id=com.gpsmapcamera.geotagginglocationonphoto"
+                      target="_blank"
+                      rel="noreferrer"
+                      className="underline font-semibold"
+                    >
+                      Play Store
+                    </a>.
+                  </div>
+                </div>
                 {/* Upload Button */}
                 <div className="border-2 border-dashed border-border rounded-lg p-6 text-center hover:border-primary/50 transition-colors">
                   <input
@@ -305,6 +330,31 @@ export function IssueReportForm({ onSuccess, className }: IssueReportFormProps) 
                         </Button>
                       </div>
                     ))}
+                  </div>
+                )}
+
+                {/* Guidance when images are present but GPS may be missing */}
+                {images.length > 0 && (
+                  <div className="bg-red-50 border border-red-200 text-red-800 rounded-lg p-3 text-sm">
+                    <div className="font-semibold mb-1">No GPS data found in the uploaded photo</div>
+                    <div>
+                      <img
+                        src="/gps-map-camera-logo.png"
+                        alt="GPS Map Camera"
+                        className="inline-block w-5 h-5 mr-2 align-[-2px]"
+                        onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }}
+                      />
+                      For precise location detection from photo, ensure Location is enabled in your camera settings before taking the photo.
+                      Alternatively, capture using the Google Maps camera. If you don't have it, download it from the
+                      {' '}<a
+                        href="https://play.google.com/store/apps/details?id=com.gpsmapcamera.geotagginglocationonphoto"
+                        target="_blank"
+                        rel="noreferrer"
+                        className="underline font-semibold"
+                      >
+                        Play Store
+                      </a>.
+                    </div>
                   </div>
                 )}
               </div>

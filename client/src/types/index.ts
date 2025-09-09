@@ -63,9 +63,61 @@ export const ISSUE_PRIORITIES = [
 ];
 
 export const ISSUE_STATUSES = [
-  { value: 'new', label: 'New', color: 'bg-yellow-100 text-yellow-800' },
-  { value: 'in_progress', label: 'In Progress', color: 'bg-blue-100 text-blue-800' },
+  { value: 'reported', label: 'Reported', color: 'bg-yellow-100 text-yellow-800' },
+  { value: 'acknowledged', label: 'Acknowledged', color: 'bg-blue-100 text-blue-800' },
+  { value: 'in_progress', label: 'In Progress', color: 'bg-orange-100 text-orange-800' },
   { value: 'resolved', label: 'Resolved', color: 'bg-green-100 text-green-800' },
-  { value: 'closed', label: 'Closed', color: 'bg-gray-100 text-gray-800' },
-  { value: 'duplicate', label: 'Duplicate', color: 'bg-purple-100 text-purple-800' },
+  { value: 'deleted', label: 'Deleted', color: 'bg-gray-100 text-gray-800' },
 ];
+
+export interface StatusHistoryEntry {
+  id: number;
+  report_id: number;
+  status: string;
+  changed_by?: string;
+  changed_at: string;
+  notes?: string;
+}
+
+export interface StatusTimeline {
+  report_id: number;
+  current_status: string;
+  stages: {
+    reported: {
+      status: 'completed' | 'pending';
+      timestamp?: string;
+      notes: string;
+    };
+    acknowledged: {
+      status: 'completed' | 'pending';
+      timestamp?: string;
+      notes: string;
+    };
+    in_progress: {
+      status: 'completed' | 'pending';
+      timestamp?: string;
+      notes: string;
+    };
+    resolved: {
+      status: 'completed' | 'pending';
+      timestamp?: string;
+      notes: string;
+    };
+  };
+  history: StatusHistoryEntry[];
+}
+
+export interface ResolutionResponse {
+  success: boolean;
+  message: string;
+  report_id: number;
+  status: string;
+  resolved_at: string;
+  evidence_url: string;
+  admin_coordinates: {
+    lat: number;
+    lng: number;
+  };
+  distance_verified: boolean;
+  distance_meters: number;
+}

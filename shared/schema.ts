@@ -1,115 +1,110 @@
 import { sql } from 'drizzle-orm';
 import {
   index,
-  jsonb,
-  pgTable,
-  timestamp,
-  varchar,
+  sqliteTable,
   text,
   integer,
-  boolean,
-  decimal,
-  pgEnum,
-} from "drizzle-orm/pg-core";
+  real,
+} from "drizzle-orm/sqlite-core";
 import { relations } from "drizzle-orm";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
 // Session storage table (required for Replit Auth)
-export const sessions = pgTable(
+export const sessions = sqliteTable(
   "sessions",
   {
-    sid: varchar("sid").primaryKey(),
-    sess: jsonb("sess").notNull(),
-    expire: timestamp("expire").notNull(),
+    sid: text("sid").primaryKey(),
+    sess: text("sess").notNull(),
+    expire: text("expire").notNull(),
   },
   (table) => [index("IDX_session_expire").on(table.expire)],
 );
 
-// Enums
-export const issueStatusEnum = pgEnum('issue_status', ['new', 'in_progress', 'resolved', 'closed', 'duplicate']);
-export const priorityEnum = pgEnum('priority', ['low', 'medium', 'high', 'urgent']);
-export const userRoleEnum = pgEnum('user_role', ['citizen', 'admin', 'department_head', 'field_worker']);
-export const categoryEnum = pgEnum('category', ['roads_transportation', 'public_safety', 'utilities', 'parks_recreation', 'sanitation', 'other']);
+// Enums (using text for SQLite)
+export const issueStatusEnum = ['new', 'in_progress', 'resolved', 'closed', 'duplicate'] as const;
+export const priorityEnum = ['low', 'medium', 'high', 'urgent'] as const;
+export const userRoleEnum = ['citizen', 'admin', 'department_head', 'field_worker'] as const;
+export const categoryEnum = ['roads_transportation', 'public_safety', 'utilities', 'parks_recreation', 'sanitation', 'other'] as const;
 
 // User storage table (required for Replit Auth)
-export const users = pgTable("users", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  email: varchar("email").unique(),
-  firstName: varchar("first_name"),
-  lastName: varchar("last_name"),
-  profileImageUrl: varchar("profile_image_url"),
-  role: userRoleEnum("role").default('citizen'),
-  departmentId: varchar("department_id"),
-  phoneNumber: varchar("phone_number"),
+export const users = sqliteTable("users", {
+  id: text("id").primaryKey().default(sql`(lower(hex(randomblob(4))) || '-' || lower(hex(randomblob(2))) || '-4' || substr(lower(hex(randomblob(2))),2) || '-' || substr('89ab',abs(random()) % 4 + 1, 1) || substr(lower(hex(randomblob(2))),2) || '-' || lower(hex(randomblob(6))))`),
+  email: text("email").unique(),
+  firstName: text("first_name"),
+  lastName: text("last_name"),
+  profileImageUrl: text("profile_image_url"),
+  role: text("role").default('citizen'),
+  departmentId: text("department_id"),
+  phoneNumber: text("phone_number"),
   contributionScore: integer("contribution_score").default(0),
-  isActive: boolean("is_active").default(true),
-  createdAt: timestamp("created_at").defaultNow(),
-  updatedAt: timestamp("updated_at").defaultNow(),
+  isActive: integer("is_active", { mode: 'boolean' }).default(true),
+  createdAt: text("created_at").default(sql`(datetime('now'))`),
+  updatedAt: text("updated_at").default(sql`(datetime('now'))`),
 });
 
 // Departments
-export const departments = pgTable("departments", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  name: varchar("name").notNull(),
+export const departments = sqliteTable("departments", {
+  id: text("id").primaryKey().default(sql`(lower(hex(randomblob(4))) || '-' || lower(hex(randomblob(2))) || '-4' || substr(lower(hex(randomblob(2))),2) || '-' || substr('89ab',abs(random()) % 4 + 1, 1) || substr(lower(hex(randomblob(2))),2) || '-' || lower(hex(randomblob(6))))`),
+  name: text("name").notNull(),
   description: text("description"),
-  contactEmail: varchar("contact_email"),
-  contactPhone: varchar("contact_phone"),
-  isActive: boolean("is_active").default(true),
-  createdAt: timestamp("created_at").defaultNow(),
+  contactEmail: text("contact_email"),
+  contactPhone: text("contact_phone"),
+  isActive: integer("is_active", { mode: 'boolean' }).default(true),
+  createdAt: text("created_at").default(sql`(datetime('now'))`),
 });
 
 // Issues
-export const issues = pgTable("issues", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  title: varchar("title").notNull(),
+export const issues = sqliteTable("issues", {
+  id: text("id").primaryKey().default(sql`(lower(hex(randomblob(4))) || '-' || lower(hex(randomblob(2))) || '-4' || substr(lower(hex(randomblob(2))),2) || '-' || substr('89ab',abs(random()) % 4 + 1, 1) || substr(lower(hex(randomblob(2))),2) || '-' || lower(hex(randomblob(6))))`),
+  title: text("title").notNull(),
   description: text("description").notNull(),
-  category: categoryEnum("category").notNull(),
-  status: issueStatusEnum("status").default('new'),
-  priority: priorityEnum("priority").default('medium'),
+  category: text("category").notNull(),
+  status: text("status").default('new'),
+  priority: text("priority").default('medium'),
   location: text("location").notNull(),
-  latitude: decimal("latitude", { precision: 10, scale: 8 }),
-  longitude: decimal("longitude", { precision: 11, scale: 8 }),
-  reportedById: varchar("reported_by_id").notNull(),
-  assignedToId: varchar("assigned_to_id"),
-  departmentId: varchar("department_id"),
+  latitude: real("latitude"),
+  longitude: real("longitude"),
+  reportedById: text("reported_by_id").notNull(),
+  assignedToId: text("assigned_to_id"),
+  departmentId: text("department_id"),
   aiSummary: text("ai_summary"),
-  aiTags: text("ai_tags").array(),
+  aiTags: text("ai_tags"),
   upvotes: integer("upvotes").default(0),
-  resolvedAt: timestamp("resolved_at"),
-  createdAt: timestamp("created_at").defaultNow(),
-  updatedAt: timestamp("updated_at").defaultNow(),
+  resolvedAt: text("resolved_at"),
+  createdAt: text("created_at").default(sql`(datetime('now'))`),
+  updatedAt: text("updated_at").default(sql`(datetime('now'))`),
 });
 
 // Issue Images
-export const issueImages = pgTable("issue_images", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  issueId: varchar("issue_id").notNull(),
-  fileName: varchar("file_name").notNull(),
-  filePath: varchar("file_path").notNull(),
+export const issueImages = sqliteTable("issue_images", {
+  id: text("id").primaryKey().default(sql`(lower(hex(randomblob(4))) || '-' || lower(hex(randomblob(2))) || '-4' || substr(lower(hex(randomblob(2))),2) || '-' || substr('89ab',abs(random()) % 4 + 1, 1) || substr(lower(hex(randomblob(2))),2) || '-' || lower(hex(randomblob(6))))`),
+  issueId: text("issue_id").notNull(),
+  fileName: text("file_name").notNull(),
+  filePath: text("file_path").notNull(),
   fileSize: integer("file_size"),
-  mimeType: varchar("mime_type"),
-  isEvidence: boolean("is_evidence").default(false),
-  uploadedById: varchar("uploaded_by_id").notNull(),
-  createdAt: timestamp("created_at").defaultNow(),
+  mimeType: text("mime_type"),
+  isEvidence: integer("is_evidence", { mode: 'boolean' }).default(false),
+  uploadedById: text("uploaded_by_id").notNull(),
+  createdAt: text("created_at").default(sql`(datetime('now'))`),
 });
 
 // Issue Comments/Updates
-export const issueComments = pgTable("issue_comments", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  issueId: varchar("issue_id").notNull(),
-  userId: varchar("user_id").notNull(),
+export const issueComments = sqliteTable("issue_comments", {
+  id: text("id").primaryKey().default(sql`(lower(hex(randomblob(4))) || '-' || lower(hex(randomblob(2))) || '-4' || substr(lower(hex(randomblob(2))),2) || '-' || substr('89ab',abs(random()) % 4 + 1, 1) || substr(lower(hex(randomblob(2))),2) || '-' || lower(hex(randomblob(6))))`),
+  issueId: text("issue_id").notNull(),
+  userId: text("user_id").notNull(),
   comment: text("comment").notNull(),
-  isInternal: boolean("is_internal").default(false),
-  createdAt: timestamp("created_at").defaultNow(),
+  isInternal: integer("is_internal", { mode: 'boolean' }).default(false),
+  createdAt: text("created_at").default(sql`(datetime('now'))`),
 });
 
 // Issue Upvotes
-export const issueUpvotes = pgTable("issue_upvotes", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  issueId: varchar("issue_id").notNull(),
-  userId: varchar("user_id").notNull(),
-  createdAt: timestamp("created_at").defaultNow(),
+export const issueUpvotes = sqliteTable("issue_upvotes", {
+  id: text("id").primaryKey().default(sql`(lower(hex(randomblob(4))) || '-' || lower(hex(randomblob(2))) || '-4' || substr(lower(hex(randomblob(2))),2) || '-' || substr('89ab',abs(random()) % 4 + 1, 1) || substr(lower(hex(randomblob(2))),2) || '-' || lower(hex(randomblob(6))))`),
+  issueId: text("issue_id").notNull(),
+  userId: text("user_id").notNull(),
+  createdAt: text("created_at").default(sql`(datetime('now'))`),
 });
 
 // Relations

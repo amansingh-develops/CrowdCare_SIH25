@@ -1,10 +1,4 @@
 import {
-  users,
-  departments,
-  issues,
-  issueImages,
-  issueComments,
-  issueUpvotes,
   type User,
   type UpsertUser,
   type Department,
@@ -16,9 +10,9 @@ import {
   type InsertComment,
   type UpdateIssueStatus,
   type UserWithDepartment,
-} from "@shared/schema";
-import { db } from "./db";
-import { eq, desc, asc, and, or, count, sql } from "drizzle-orm";
+} from "@shared/mongodb-schema";
+import { connectToDatabase } from "./db";
+import { ObjectId } from "mongodb";
 
 export interface IStorage {
   // User operations (required for Replit Auth)
@@ -75,48 +69,72 @@ export interface IStorage {
 export class DatabaseStorage implements IStorage {
   // User operations
   async getUser(id: string): Promise<User | undefined> {
-    const [user] = await db.select().from(users).where(eq(users.id, id));
-    return user;
+    const { db } = await connectToDatabase();
+    const user = await db.collection('users').findOne({ _id: new ObjectId(id) });
+    return user as User | undefined;
   }
 
   async upsertUser(userData: UpsertUser): Promise<User> {
-    const [user] = await db
-      .insert(users)
-      .values(userData)
-      .onConflictDoUpdate({
-        target: users.id,
-        set: {
+    const { db } = await connectToDatabase();
+    const now = new Date();
+    
+    const result = await db.collection('users').findOneAndUpdate(
+      { _id: userData._id ? new ObjectId(userData._id) : undefined },
+      {
+        $set: {
           ...userData,
-          updatedAt: new Date(),
+          updatedAt: now,
         },
-      })
-      .returning();
-    return user;
+        $setOnInsert: {
+          createdAt: now,
+          contributionScore: 0,
+          isActive: true,
+        }
+      },
+      { 
+        upsert: true, 
+        returnDocument: 'after' 
+      }
+    );
+    
+    return result as User;
   }
 
   async getUserWithDepartment(id: string): Promise<UserWithDepartment | undefined> {
-    const [result] = await db
-      .select()
-      .from(users)
-      .leftJoin(departments, eq(users.departmentId, departments.id))
-      .where(eq(users.id, id));
+    const { db } = await connectToDatabase();
     
-    if (!result) return undefined;
+    const pipeline = [
+      { $match: { _id: new ObjectId(id) } },
+      {
+        $lookup: {
+          from: 'departments',
+          localField: 'departmentId',
+          foreignField: '_id',
+          as: 'department'
+        }
+      },
+      {
+        $addFields: {
+          department: { $arrayElemAt: ['$department', 0] }
+        }
+      }
+    ];
     
-    return {
-      ...result.users,
-      department: result.departments || undefined,
-    };
+    const result = await db.collection('users').aggregate(pipeline).toArray();
+    return result[0] as UserWithDepartment | undefined;
   }
 
   // Department operations
   async getDepartments(): Promise<Department[]> {
-    return db.select().from(departments).where(eq(departments.isActive, true));
+    const { db } = await connectToDatabase();
+    const departments = await db.collection('departments').find({ isActive: true }).toArray();
+    return departments as Department[];
   }
 
   async getDepartment(id: string): Promise<Department | undefined> {
-    const [department] = await db.select().from(departments).where(eq(departments.id, id));
-    return department;
+    const { db } = await connectToDatabase();
+    const department = await db.collection('departments').findOne({ _id: new ObjectId(id) });
+    return department as Department | undefined;
   }
 
   // Issue operations
@@ -211,7 +229,18 @@ export class DatabaseStorage implements IStorage {
       queryBuilder = queryBuilder.where(and(...conditions));
     }
 
-    queryBuilder = queryBuilder.orderBy(desc(issues.createdAt));
+    // Order by priority first (urgent > high > medium > low), then by upvotes, then by creation date
+    queryBuilder = queryBuilder.orderBy(
+      sql`CASE 
+        WHEN ${issues.priority} = 'urgent' THEN 4
+        WHEN ${issues.priority} = 'high' THEN 3
+        WHEN ${issues.priority} = 'medium' THEN 2
+        WHEN ${issues.priority} = 'low' THEN 1
+        ELSE 0
+      END DESC`,
+      desc(issues.upvotes),
+      desc(issues.createdAt)
+    );
     
     if (params.limit) {
       queryBuilder = queryBuilder.limit(params.limit);

@@ -2,8 +2,8 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { StatusBadge } from "./StatusBadge";
-import { Heart, MessageCircle, MapPin, Calendar, User } from "lucide-react";
-import { formatDistanceToNow } from "date-fns";
+import { ArrowBigUp, MessageCircle, MapPin, Calendar, User } from "lucide-react";
+import { formatISTDateTime } from "@/lib/utils";
 import type { IssueWithDetails } from "@shared/schema";
 import { ISSUE_CATEGORIES } from "@/types";
 
@@ -71,9 +71,7 @@ export function IssueCard({ issue, onUpvote, onView, showActions = true, compact
           </div>
           <div className="flex items-center">
             <Calendar className="w-3 h-3 mr-1" />
-            <span data-testid={`text-issue-date-${issue.id}`}>
-              {formatDistanceToNow(new Date(issue.createdAt), { addSuffix: true })}
-            </span>
+            <span data-testid={`text-issue-date-${issue.id}`}>{formatISTDateTime(issue.createdAt)}</span>
           </div>
           <div className="flex items-center">
             <User className="w-3 h-3 mr-1" />
@@ -98,10 +96,11 @@ export function IssueCard({ issue, onUpvote, onView, showActions = true, compact
                 variant="ghost"
                 size="sm"
                 onClick={handleUpvote}
-                className="text-muted-foreground hover:text-accent flex items-center space-x-1"
+                className={`text-muted-foreground hover:text-accent flex items-center space-x-1 ${issue.userHasUpvoted ? 'text-blue-600' : ''}`}
                 data-testid={`button-upvote-${issue.id}`}
+                aria-pressed={issue.userHasUpvoted}
               >
-                <Heart className="w-4 h-4" />
+                <ArrowBigUp className={`w-4 h-4 ${issue.userHasUpvoted ? 'fill-blue-600 stroke-blue-600' : ''}`} />
                 <span>{issue.upvotes || 0}</span>
               </Button>
               <div className="flex items-center space-x-1 text-muted-foreground">

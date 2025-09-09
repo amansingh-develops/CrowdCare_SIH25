@@ -51,17 +51,17 @@ export function IssuesMap({ issues, onIssueSelect, className }: IssuesMapProps) 
   return (
     <Card className={className}>
       <CardHeader className="border-b border-border">
-        <div className="flex justify-between items-center">
+        <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3">
           <CardTitle className="flex items-center">
             <MapPin className="w-5 h-5 mr-2 text-primary" />
             Community Issues Map
           </CardTitle>
-          <div className="flex items-center space-x-2">
-            <Button variant="outline" size="sm" data-testid="button-map-filter">
+          <div className="flex items-stretch sm:items-center gap-2">
+            <Button variant="outline" size="sm" className="w-full sm:w-auto" data-testid="button-map-filter">
               <Filter className="w-4 h-4 mr-2" />
               Filter
             </Button>
-            <Button variant="outline" size="sm" data-testid="button-map-search">
+            <Button variant="outline" size="sm" className="w-full sm:w-auto" data-testid="button-map-search">
               <Search className="w-4 h-4 mr-2" />
               Search
             </Button>
@@ -72,7 +72,7 @@ export function IssuesMap({ issues, onIssueSelect, className }: IssuesMapProps) 
       
       <CardContent className="p-0">
         {/* Map Container */}
-        <div className="h-96 bg-muted relative overflow-hidden" data-testid="map-container">
+        <div className="h-[50vh] sm:h-96 bg-muted relative overflow-hidden" data-testid="map-container">
           {/* Mock city background */}
           <div 
             className="w-full h-full bg-cover bg-center relative"
@@ -151,8 +151,8 @@ export function IssuesMap({ issues, onIssueSelect, className }: IssuesMapProps) 
         </div>
 
         {/* Map controls */}
-        <div className="p-4 bg-muted/30 flex justify-between items-center border-t border-border">
-          <div className="flex items-center space-x-2">
+        <div className="p-4 bg-muted/30 flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 border-t border-border">
+          <div className="flex items-center flex-wrap gap-2">
             {/* Quick filter buttons */}
             {['high', 'new', 'in_progress', 'resolved'].map((filter) => (
               <Button

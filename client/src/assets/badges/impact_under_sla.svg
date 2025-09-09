@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" aria-hidden="true" role="img">
+  <g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M24 10v2"/>
+    <circle cx="24" cy="26" r="12"/>
+    <path d="M24 26v-6"/>
+    <path d="M24 26h6"/>
+  </g>
+  <path d="M24 18l-3 6h4l-3 6 8-8h-4l2-4z" fill="var(--cc-badge-accent,#f59e0b)" aria-hidden="true"/>
+</svg>
+
+

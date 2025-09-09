@@ -8,8 +8,29 @@ import memoize from "memoizee";
 import connectPg from "connect-pg-simple";
 import { storage } from "./storage";
 
-if (!process.env.REPLIT_DOMAINS) {
+// Skip Replit auth for local development
+if (!process.env.REPLIT_DOMAINS && process.env.NODE_ENV === 'development') {
+  console.log('Skipping Replit auth setup for local development');
+} else if (!process.env.REPLIT_DOMAINS) {
   throw new Error("Environment variable REPLIT_DOMAINS not provided");
+}
+
+// Dummy setup function for local development
+async function setupAuthLocal(app: Express) {
+  console.log('Auth setup skipped for local development');
+}
+
+function getSessionLocal() {
+  return session({
+    secret: 'local-dev-secret',
+    resave: false,
+    saveUninitialized: false,
+    cookie: {
+      httpOnly: true,
+      secure: false,
+      maxAge: 7 * 24 * 60 * 60 * 1000, // 1 week
+    },
+  });
 }
 
 const getOidcConfig = memoize(
@@ -22,7 +43,7 @@ const getOidcConfig = memoize(
   { maxAge: 3600 * 1000 }
 );
 
-export function getSession() {
+function getSessionProduction() {
   const sessionTtl = 7 * 24 * 60 * 60 * 1000; // 1 week
   const pgStore = connectPg(session);
   const sessionStore = new pgStore({
@@ -66,7 +87,7 @@ async function upsertUser(
   });
 }
 
-export async function setupAuth(app: Express) {
+async function setupAuthProduction(app: Express) {
   app.set("trust proxy", 1);
   app.use(getSession());
   app.use(passport.initialize());
@@ -155,3 +176,12 @@ export const isAuthenticated: RequestHandler = async (req, res, next) => {
     return;
   }
 };
+
+// Conditional exports based on environment
+export const setupAuth = (!process.env.REPLIT_DOMAINS && process.env.NODE_ENV === 'development') 
+  ? setupAuthLocal 
+  : setupAuthProduction;
+
+export const getSession = (!process.env.REPLIT_DOMAINS && process.env.NODE_ENV === 'development')
+  ? getSessionLocal
+  : getSessionProduction;

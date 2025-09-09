@@ -5,7 +5,7 @@ import { RoleToggle } from "@/components/RoleToggle";
 import { CitizenPanel } from "@/components/CitizenPanel";
 import { AdminPanel } from "@/components/AdminPanel";
 import { useAuth } from "@/hooks/useAuth";
-import { HandHeart, LogOut } from "lucide-react";
+import { LogOut } from "lucide-react";
 
 type UserRole = 'citizen' | 'admin';
 
@@ -24,32 +24,41 @@ export default function Home() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
             <div className="flex items-center space-x-3">
-              <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
-                <HandHeart className="text-primary-foreground text-sm" />
-              </div>
+              <img 
+                src="/src/assets/gov-logo.png" 
+                alt="Government Logo" 
+                className="w-8 h-8" 
+              />
+              <img 
+                src="/src/assets/crowdcare-logo.png" 
+                alt="CrowdCare Logo" 
+                className="w-8 h-8" 
+              />
               <h1 className="text-xl font-bold text-primary">CrowdCare</h1>
             </div>
             
             {/* User Info & Controls */}
-            <div className="flex items-center space-x-4">
+            <div className="flex items-center space-x-2 sm:space-x-4">
               {/* Role Toggle */}
-              <RoleToggle
-                currentRole={currentRole}
-                onRoleChange={setCurrentRole}
-                data-testid="role-toggle"
-              />
+              <div className="hidden sm:block">
+                <RoleToggle
+                  currentRole={currentRole}
+                  onRoleChange={setCurrentRole}
+                  data-testid="role-toggle"
+                />
+              </div>
               
               {/* User Menu */}
-              <div className="flex items-center space-x-3">
+              <div className="flex items-center space-x-2 sm:space-x-3">
                 {user?.profileImageUrl && (
                   <img
                     src={user.profileImageUrl}
                     alt="Profile"
-                    className="w-8 h-8 rounded-full object-cover"
+                    className="w-6 h-6 sm:w-8 sm:h-8 rounded-full object-cover"
                     data-testid="img-user-avatar"
                   />
                 )}
-                <div className="hidden sm:block text-sm">
+                <div className="hidden md:block text-sm">
                   <div className="font-medium text-foreground" data-testid="text-user-name">
                     {user?.firstName} {user?.lastName}
                   </div>
@@ -84,9 +93,16 @@ export default function Home() {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             <div>
               <div className="flex items-center space-x-3 mb-4">
-                <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
-                  <HandHeart className="text-primary-foreground text-sm" />
-                </div>
+                <img 
+                  src="/src/assets/gov-logo.png" 
+                  alt="Government Logo" 
+                  className="w-8 h-8" 
+                />
+                <img 
+                  src="/src/assets/crowdcare-logo.png" 
+                  alt="CrowdCare Logo" 
+                  className="w-8 h-8" 
+                />
                 <h3 className="font-bold text-primary">CrowdCare</h3>
               </div>
               <p className="text-sm text-muted-foreground">

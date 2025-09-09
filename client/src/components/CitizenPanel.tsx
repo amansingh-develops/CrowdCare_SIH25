@@ -7,6 +7,7 @@ import { IssueReportForm } from "./IssueReportForm";
 import { IssuesMap } from "./IssuesMap";
 import { IssueCard } from "./IssueCard";
 import { StatusBadge } from "./StatusBadge";
+import { StatusTracker } from "./StatusTracker";
 import { useAuth } from "@/hooks/useAuth";
 import { Camera, Map, History, Download, Heart } from "lucide-react";
 import type { IssueWithDetails } from "@shared/schema";
@@ -14,6 +15,8 @@ import type { IssueWithDetails } from "@shared/schema";
 export function CitizenPanel() {
   const [showReportForm, setShowReportForm] = useState(false);
   const [showMap, setShowMap] = useState(false);
+  const [showStatusTracker, setShowStatusTracker] = useState(false);
+  const [selectedReportForTracking, setSelectedReportForTracking] = useState<IssueWithDetails | null>(null);
   const { user } = useAuth();
 
   // Fetch user's issues
@@ -42,6 +45,11 @@ export function CitizenPanel() {
     } catch (error) {
       console.error('Failed to upvote issue:', error);
     }
+  };
+
+  const handleTrackStatus = (issue: IssueWithDetails) => {
+    setSelectedReportForTracking(issue);
+    setShowStatusTracker(true);
   };
 
   if (showReportForm) {
@@ -121,6 +129,31 @@ export function CitizenPanel() {
     );
   }
 
+  if (showStatusTracker && selectedReportForTracking) {
+    return (
+      <div className="space-y-8">
+        <div className="flex items-center justify-between">
+          <h2 className="text-2xl font-bold text-primary">Track Issue Status</h2>
+          <Button
+            variant="outline"
+            onClick={() => {
+              setShowStatusTracker(false);
+              setSelectedReportForTracking(null);
+            }}
+            data-testid="button-back-from-tracking"
+          >
+            Back to Dashboard
+          </Button>
+        </div>
+        <StatusTracker
+          reportId={selectedReportForTracking.id}
+          reportTitle={selectedReportForTracking.title}
+          currentStatus={selectedReportForTracking.status}
+        />
+      </div>
+    );
+  }
+
   return (
     <div className="grid lg:grid-cols-2 gap-8">
       {/* Mobile-First Dashboard */}
@@ -181,9 +214,18 @@ export function CitizenPanel() {
                         </span>
                         <StatusBadge status={issue.status} />
                       </div>
-                      <p className="text-xs text-muted-foreground" data-testid={`text-recent-date-${issue.id}`}>
+                      <p className="text-xs text-muted-foreground mb-2" data-testid={`text-recent-date-${issue.id}`}>
                         Reported {new Date(issue.createdAt).toLocaleDateString()}
                       </p>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="w-full text-xs"
+                        onClick={() => handleTrackStatus(issue)}
+                        data-testid={`button-track-status-${issue.id}`}
+                      >
+                        Track Status
+                      </Button>
                     </div>
                   ))}
                 </div>

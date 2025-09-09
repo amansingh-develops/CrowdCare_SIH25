@@ -1,0 +1,829 @@
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CrowdCare - Civic Issue Reporting Platform</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    borderRadius: {
+                        lg: "var(--radius)",
+                        md: "calc(var(--radius) - 2px)",
+                        sm: "calc(var(--radius) - 4px)",
+                    },
+                    colors: {
+                        background: "var(--background)",
+                        foreground: "var(--foreground)",
+                        card: {
+                            DEFAULT: "var(--card)",
+                            foreground: "var(--card-foreground)",
+                        },
+                        popover: {
+                            DEFAULT: "var(--popover)",
+                            foreground: "var(--popover-foreground)",
+                        },
+                        primary: {
+                            DEFAULT: "var(--primary)",
+                            foreground: "var(--primary-foreground)",
+                        },
+                        secondary: {
+                            DEFAULT: "var(--secondary)",
+                            foreground: "var(--secondary-foreground)",
+                        },
+                        muted: {
+                            DEFAULT: "var(--muted)",
+                            foreground: "var(--muted-foreground)",
+                        },
+                        accent: {
+                            DEFAULT: "var(--accent)",
+                            foreground: "var(--accent-foreground)",
+                        },
+                        destructive: {
+                            DEFAULT: "var(--destructive)",
+                            foreground: "var(--destructive-foreground)",
+                        },
+                        border: "var(--border)",
+                        input: "var(--input)",
+                        ring: "var(--ring)",
+                    },
+                    fontFamily: {
+                        sans: ["var(--font-sans)"],
+                    }
+                }
+            }
+        };
+    </script>
+    <style>
+        :root {
+            --background: hsl(210 40% 98%);
+            --foreground: hsl(222.2 84% 4.9%);
+            --card: hsl(0 0% 100%);
+            --card-foreground: hsl(222.2 84% 4.9%);
+            --popover: hsl(0 0% 100%);
+            --popover-foreground: hsl(222.2 84% 4.9%);
+            --primary: hsl(210 83% 53%);
+            --primary-foreground: hsl(0 0% 100%);
+            --secondary: hsl(122 39% 49%);
+            --secondary-foreground: hsl(0 0% 100%);
+            --muted: hsl(210 40% 96%);
+            --muted-foreground: hsl(215.4 16.3% 46.9%);
+            --accent: hsl(33 100% 50%);
+            --accent-foreground: hsl(0 0% 100%);
+            --destructive: hsl(0 84% 60%);
+            --destructive-foreground: hsl(0 0% 100%);
+            --border: hsl(214.3 31.8% 91.4%);
+            --input: hsl(214.3 31.8% 91.4%);
+            --ring: hsl(210 83% 53%);
+            --radius: 8px;
+            --font-sans: "Inter", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+        }
+        
+        .dark {
+            --background: hsl(222.2 84% 4.9%);
+            --foreground: hsl(210 40% 98%);
+            --card: hsl(222.2 84% 4.9%);
+            --card-foreground: hsl(210 40% 98%);
+            --popover: hsl(222.2 84% 4.9%);
+            --popover-foreground: hsl(210 40% 98%);
+            --primary: hsl(210 83% 53%);
+            --primary-foreground: hsl(0 0% 100%);
+            --secondary: hsl(217.2 32.6% 17.5%);
+            --secondary-foreground: hsl(210 40% 98%);
+            --muted: hsl(217.2 32.6% 17.5%);
+            --muted-foreground: hsl(215 20.2% 65.1%);
+            --accent: hsl(217.2 32.6% 17.5%);
+            --accent-foreground: hsl(210 40% 98%);
+            --destructive: hsl(0 62.8% 30.6%);
+            --destructive-foreground: hsl(210 40% 98%);
+            --border: hsl(217.2 32.6% 17.5%);
+            --input: hsl(217.2 32.6% 17.5%);
+            --ring: hsl(212.7 26.8% 83.9%);
+        }
+        
+        body {
+            font-family: var(--font-sans);
+        }
+        
+        .transition-smooth {
+            transition: all 0.2s ease-in-out;
+        }
+        
+        .glass-effect {
+            backdrop-filter: blur(10px);
+            background: rgba(255, 255, 255, 0.95);
+        }
+        
+        .elevation-1 {
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12), 0 1px 2px rgba(0, 0, 0, 0.24);
+        }
+        
+        .elevation-2 {
+            box-shadow: 0 3px 6px rgba(0, 0, 0, 0.16), 0 3px 6px rgba(0, 0, 0, 0.23);
+        }
+    </style>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body class="bg-background text-foreground">
+    <!-- @COMPONENT: AppNavigation -->
+    <nav class="bg-card border-b border-border sticky top-0 z-50 glass-effect">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between h-16">
+                <div class="flex items-center">
+                    <div class="flex-shrink-0 flex items-center">
+                        <i class="fas fa-hands-helping text-primary text-2xl mr-3"></i>
+                        <h1 class="text-xl font-bold text-primary">CrowdCare</h1>
+                    </div>
+                    <div class="hidden md:block ml-10">
+                        <div class="flex items-baseline space-x-4">
+                            <a href="#home" class="text-primary font-medium px-3 py-2 rounded-md text-sm transition-smooth hover:bg-muted">Home</a>
+                            <a href="#report" class="text-muted-foreground hover:text-foreground px-3 py-2 rounded-md text-sm transition-smooth hover:bg-muted">Report Issue</a>
+                            <a href="#map" class="text-muted-foreground hover:text-foreground px-3 py-2 rounded-md text-sm transition-smooth hover:bg-muted">Map</a>
+                            <a href="#dashboard" class="text-muted-foreground hover:text-foreground px-3 py-2 rounded-md text-sm transition-smooth hover:bg-muted">Dashboard</a>
+                        </div>
+                    </div>
+                </div>
+                <div class="flex items-center">
+                    <button class="bg-primary text-primary-foreground px-4 py-2 rounded-md text-sm font-medium transition-smooth hover:bg-primary/90 elevation-1">
+                        <i class="fas fa-user mr-2"></i>Sign In
+                    </button>
+                    <button class="md:hidden ml-4 text-muted-foreground">
+                        <i class="fas fa-bars text-lg"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </nav>
+    <!-- @END_COMPONENT: AppNavigation -->
+
+    <!-- @COMPONENT: HeroSection -->
+    <section id="home" class="bg-gradient-to-r from-primary/10 to-secondary/10 py-20">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+                <div>
+                    <h2 class="text-4xl md:text-5xl font-bold text-foreground mb-6">
+                        Report Issues.<br>
+                        <span class="text-primary">Make Change.</span>
+                    </h2>
+                    <p class="text-xl text-muted-foreground mb-8 leading-relaxed">
+                        Help your community by reporting local issues like potholes, broken streetlights, 
+                        and maintenance needs. Track progress and see real change happen.
+                    </p>
+                    <div class="flex flex-col sm:flex-row gap-4">
+                        <button class="bg-primary text-primary-foreground px-8 py-4 rounded-lg font-semibold text-lg transition-smooth hover:bg-primary/90 elevation-2">
+                            <i class="fas fa-camera mr-2"></i>Report an Issue
+                        </button>
+                        <button class="bg-card text-foreground border border-border px-8 py-4 rounded-lg font-semibold text-lg transition-smooth hover:bg-muted elevation-1">
+                            <i class="fas fa-map-marked-alt mr-2"></i>View Map
+                        </button>
+                    </div>
+                </div>
+                <div class="relative">
+                    <!-- City community working together illustration -->
+                    <div class="bg-card rounded-2xl p-8 elevation-2">
+                        <div class="grid grid-cols-2 gap-4">
+                            <div class="bg-primary/10 rounded-lg p-4 text-center">
+                                <i class="fas fa-tools text-primary text-3xl mb-2"></i>
+                                <h3 class="font-semibold text-sm">Infrastructure</h3>
+                                <p class="text-xs text-muted-foreground mt-1">Roads & Utilities</p>
+                            </div>
+                            <div class="bg-secondary/10 rounded-lg p-4 text-center">
+                                <i class="fas fa-leaf text-secondary text-3xl mb-2"></i>
+                                <h3 class="font-semibold text-sm">Environment</h3>
+                                <p class="text-xs text-muted-foreground mt-1">Parks & Cleanup</p>
+                            </div>
+                            <div class="bg-accent/10 rounded-lg p-4 text-center">
+                                <i class="fas fa-shield-alt text-accent text-3xl mb-2"></i>
+                                <h3 class="font-semibold text-sm">Safety</h3>
+                                <p class="text-xs text-muted-foreground mt-1">Lighting & Security</p>
+                            </div>
+                            <div class="bg-purple-100 rounded-lg p-4 text-center">
+                                <i class="fas fa-users text-purple-600 text-3xl mb-2"></i>
+                                <h3 class="font-semibold text-sm">Community</h3>
+                                <p class="text-xs text-muted-foreground mt-1">Events & Services</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+    <!-- @END_COMPONENT: HeroSection -->
+
+    <!-- @COMPONENT: ReportIssueForm -->
+    <section id="report" class="py-16 bg-background">
+        <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="text-center mb-12">
+                <h2 class="text-3xl font-bold text-foreground mb-4">Report an Issue</h2>
+                <p class="text-lg text-muted-foreground">Help us keep our community in great shape</p>
+            </div>
+
+            <div class="bg-card rounded-xl p-8 elevation-2">
+                <form class="space-y-6">
+                    <!-- @STATE: issueType:string = '', location:object = null, photos:File[] = [] -->
+                    
+                    <!-- Issue Category -->
+                    <div>
+                        <label class="block text-sm font-semibold text-foreground mb-3">Issue Category</label>
+                        <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+                            <button type="button" class="category-btn bg-muted text-muted-foreground border border-border rounded-lg p-4 text-center transition-smooth hover:bg-primary hover:text-primary-foreground" data-category="infrastructure">
+                                <i class="fas fa-tools text-2xl mb-2 block"></i>
+                                <span class="text-sm font-medium">Infrastructure</span>
+                            </button>
+                            <button type="button" class="category-btn bg-muted text-muted-foreground border border-border rounded-lg p-4 text-center transition-smooth hover:bg-secondary hover:text-secondary-foreground" data-category="environment">
+                                <i class="fas fa-leaf text-2xl mb-2 block"></i>
+                                <span class="text-sm font-medium">Environment</span>
+                            </button>
+                            <button type="button" class="category-btn bg-muted text-muted-foreground border border-border rounded-lg p-4 text-center transition-smooth hover:bg-accent hover:text-accent-foreground" data-category="safety">
+                                <i class="fas fa-shield-alt text-2xl mb-2 block"></i>
+                                <span class="text-sm font-medium">Safety</span>
+                            </button>
+                            <button type="button" class="category-btn bg-muted text-muted-foreground border border-border rounded-lg p-4 text-center transition-smooth hover:bg-purple-500 hover:text-white" data-category="community">
+                                <i class="fas fa-users text-2xl mb-2 block"></i>
+                                <span class="text-sm font-medium">Community</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Issue Description -->
+                    <div>
+                        <label for="description" class="block text-sm font-semibold text-foreground mb-2">Description</label>
+                        <textarea id="description" rows="4" class="w-full px-4 py-3 border border-border rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent resize-none" placeholder="Describe the issue in detail..."></textarea>
+                    </div>
+
+                    <!-- Location -->
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div>
+                            <label class="block text-sm font-semibold text-foreground mb-2">Location</label>
+                            <div class="space-y-3">
+                                <button type="button" class="w-full bg-primary text-primary-foreground px-4 py-3 rounded-lg font-medium transition-smooth hover:bg-primary/90 elevation-1">
+                                    <i class="fas fa-crosshairs mr-2"></i>Use Current Location
+                                </button>
+                                <input type="text" placeholder="Or enter address..." class="w-full px-4 py-3 border border-border rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent">
+                            </div>
+                        </div>
+                        
+                        <!-- Mini Map Preview -->
+                        <div>
+                            <label class="block text-sm font-semibold text-foreground mb-2">Map Preview</label>
+                            <div class="h-32 bg-muted border border-border rounded-lg flex items-center justify-center">
+                                <!-- A street map view showing location pin -->
+                                <div class="text-center text-muted-foreground">
+                                    <i class="fas fa-map-marker-alt text-primary text-2xl mb-2"></i>
+                                    <p class="text-sm">Location will appear here</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Photo Upload -->
+                    <div>
+                        <label class="block text-sm font-semibold text-foreground mb-2">Photos</label>
+                        <div class="border-2 border-dashed border-border rounded-lg p-8 text-center hover:border-primary transition-smooth">
+                            <input type="file" multiple accept="image/*" class="hidden" id="photo-upload">
+                            <label for="photo-upload" class="cursor-pointer">
+                                <i class="fas fa-camera text-4xl text-muted-foreground mb-4"></i>
+                                <p class="text-lg font-medium text-foreground mb-2">Upload Photos</p>
+                                <p class="text-sm text-muted-foreground">Drag and drop or click to select up to 5 photos</p>
+                            </label>
+                        </div>
+                        <!-- @IMPLEMENTATION: Use FileUpload component with image preview -->
+                    </div>
+
+                    <!-- Priority Level -->
+                    <div>
+                        <label class="block text-sm font-semibold text-foreground mb-3">Priority Level</label>
+                        <div class="flex space-x-4">
+                            <label class="flex items-center">
+                                <input type="radio" name="priority" value="low" class="text-primary focus:ring-primary">
+                                <span class="ml-2 text-sm text-foreground">Low</span>
+                            </label>
+                            <label class="flex items-center">
+                                <input type="radio" name="priority" value="medium" class="text-primary focus:ring-primary" checked>
+                                <span class="ml-2 text-sm text-foreground">Medium</span>
+                            </label>
+                            <label class="flex items-center">
+                                <input type="radio" name="priority" value="high" class="text-primary focus:ring-primary">
+                                <span class="ml-2 text-sm text-foreground">High</span>
+                            </label>
+                            <label class="flex items-center">
+                                <input type="radio" name="priority" value="urgent" class="text-primary focus:ring-primary">
+                                <span class="ml-2 text-sm text-foreground">Urgent</span>
+                            </label>
+                        </div>
+                    </div>
+
+                    <!-- Submit Button -->
+                    <div class="flex justify-end space-x-4 pt-6">
+                        <button type="button" class="px-6 py-3 border border-border rounded-lg font-medium text-foreground transition-smooth hover:bg-muted">
+                            Save Draft
+                        </button>
+                        <button type="submit" class="px-8 py-3 bg-primary text-primary-foreground rounded-lg font-semibold transition-smooth hover:bg-primary/90 elevation-1">
+                            <i class="fas fa-paper-plane mr-2"></i>Submit Report
+                        </button>
+                    </div>
+                    <!-- @EVENT: submit:handleReportSubmission -->
+                </form>
+            </div>
+        </div>
+    </section>
+    <!-- @END_COMPONENT: ReportIssueForm -->
+
+    <!-- @COMPONENT: InteractiveMap -->
+    <section id="map" class="py-16 bg-muted/30">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="text-center mb-8">
+                <h2 class="text-3xl font-bold text-foreground mb-4">Community Issues Map</h2>
+                <p class="text-lg text-muted-foreground">See reported issues in your area</p>
+            </div>
+
+            <div class="bg-card rounded-xl p-6 elevation-2">
+                <!-- Map Controls -->
+                <div class="flex flex-wrap justify-between items-center mb-6 space-y-2 sm:space-y-0">
+                    <div class="flex flex-wrap space-x-2">
+                        <span class="text-sm font-medium text-foreground">Filters:</span>
+                        <button class="bg-primary text-primary-foreground px-3 py-1 rounded-full text-xs font-medium">All</button>
+                        <button class="bg-muted text-muted-foreground px-3 py-1 rounded-full text-xs font-medium hover:bg-primary hover:text-primary-foreground transition-smooth">Infrastructure</button>
+                        <button class="bg-muted text-muted-foreground px-3 py-1 rounded-full text-xs font-medium hover:bg-secondary hover:text-secondary-foreground transition-smooth">Environment</button>
+                        <button class="bg-muted text-muted-foreground px-3 py-1 rounded-full text-xs font-medium hover:bg-accent hover:text-accent-foreground transition-smooth">Safety</button>
+                    </div>
+                    <div class="flex space-x-2">
+                        <button class="bg-muted text-muted-foreground p-2 rounded-lg hover:bg-primary hover:text-primary-foreground transition-smooth">
+                            <i class="fas fa-search"></i>
+                        </button>
+                        <button class="bg-muted text-muted-foreground p-2 rounded-lg hover:bg-primary hover:text-primary-foreground transition-smooth">
+                            <i class="fas fa-filter"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Map Container -->
+                <div class="relative h-96 bg-gradient-to-br from-blue-50 to-green-50 rounded-lg border border-border overflow-hidden">
+                    <!-- Mock map with issue markers -->
+                    <!-- A birds-eye view of city streets with various colored pins -->
+                    <div class="absolute inset-0 bg-gradient-to-br from-blue-100 to-green-100"></div>
+                    
+                    <!-- Issue Markers -->
+                    <div class="absolute top-1/4 left-1/3 transform -translate-x-1/2 -translate-y-1/2">
+                        <div class="bg-destructive text-destructive-foreground w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold shadow-lg cursor-pointer hover:scale-110 transition-smooth" title="Pothole - High Priority">
+                            <i class="fas fa-exclamation"></i>
+                        </div>
+                    </div>
+                    
+                    <div class="absolute top-2/3 left-1/2 transform -translate-x-1/2 -translate-y-1/2">
+                        <div class="bg-accent text-accent-foreground w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold shadow-lg cursor-pointer hover:scale-110 transition-smooth" title="Broken Streetlight">
+                            <i class="fas fa-lightbulb"></i>
+                        </div>
+                    </div>
+                    
+                    <div class="absolute top-1/2 left-2/3 transform -translate-x-1/2 -translate-y-1/2">
+                        <div class="bg-secondary text-secondary-foreground w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold shadow-lg cursor-pointer hover:scale-110 transition-smooth" title="Litter Cleanup Needed">
+                            <i class="fas fa-leaf"></i>
+                        </div>
+                    </div>
+
+                    <!-- Map Controls -->
+                    <div class="absolute top-4 right-4 space-y-2">
+                        <button class="bg-card text-foreground w-10 h-10 rounded-lg shadow-lg flex items-center justify-center hover:bg-muted transition-smooth">
+                            <i class="fas fa-plus"></i>
+                        </button>
+                        <button class="bg-card text-foreground w-10 h-10 rounded-lg shadow-lg flex items-center justify-center hover:bg-muted transition-smooth">
+                            <i class="fas fa-minus"></i>
+                        </button>
+                    </div>
+
+                    <!-- Legend -->
+                    <div class="absolute bottom-4 left-4 bg-card/95 backdrop-blur-sm p-3 rounded-lg shadow-lg">
+                        <h4 class="text-sm font-semibold text-foreground mb-2">Legend</h4>
+                        <div class="space-y-1 text-xs">
+                            <div class="flex items-center"><div class="w-3 h-3 bg-destructive rounded-full mr-2"></div>High Priority</div>
+                            <div class="flex items-center"><div class="w-3 h-3 bg-accent rounded-full mr-2"></div>Medium Priority</div>
+                            <div class="flex items-center"><div class="w-3 h-3 bg-secondary rounded-full mr-2"></div>Low Priority</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Issue List -->
+                <div class="mt-6 grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <!-- @MAP: nearbyIssues.map(issue => ( -->
+                    <div class="bg-muted rounded-lg p-4 hover:bg-muted/70 transition-smooth cursor-pointer">
+                        <div class="flex items-start justify-between mb-2">
+                            <h4 class="font-semibold text-foreground text-sm">Pothole on Main St</h4>
+                            <span class="bg-destructive text-destructive-foreground px-2 py-1 rounded-full text-xs font-medium">High</span>
+                        </div>
+                        <p class="text-muted-foreground text-xs mb-2">Large pothole causing traffic issues</p>
+                        <div class="flex items-center text-xs text-muted-foreground">
+                            <i class="fas fa-map-marker-alt mr-1"></i>
+                            <span>0.2 miles away</span>
+                            <span class="mx-2">•</span>
+                            <span>2 hours ago</span>
+                        </div>
+                    </div>
+
+                    <div class="bg-muted rounded-lg p-4 hover:bg-muted/70 transition-smooth cursor-pointer">
+                        <div class="flex items-start justify-between mb-2">
+                            <h4 class="font-semibold text-foreground text-sm">Broken Streetlight</h4>
+                            <span class="bg-accent text-accent-foreground px-2 py-1 rounded-full text-xs font-medium">Medium</span>
+                        </div>
+                        <p class="text-muted-foreground text-xs mb-2">Streetlight not working on Oak Ave</p>
+                        <div class="flex items-center text-xs text-muted-foreground">
+                            <i class="fas fa-map-marker-alt mr-1"></i>
+                            <span>0.5 miles away</span>
+                            <span class="mx-2">•</span>
+                            <span>1 day ago</span>
+                        </div>
+                    </div>
+
+                    <div class="bg-muted rounded-lg p-4 hover:bg-muted/70 transition-smooth cursor-pointer">
+                        <div class="flex items-start justify-between mb-2">
+                            <h4 class="font-semibold text-foreground text-sm">Park Cleanup Needed</h4>
+                            <span class="bg-secondary text-secondary-foreground px-2 py-1 rounded-full text-xs font-medium">Low</span>
+                        </div>
+                        <p class="text-muted-foreground text-xs mb-2">Litter accumulation in Central Park</p>
+                        <div class="flex items-center text-xs text-muted-foreground">
+                            <i class="fas fa-map-marker-alt mr-1"></i>
+                            <span>0.8 miles away</span>
+                            <span class="mx-2">•</span>
+                            <span>3 days ago</span>
+                        </div>
+                    </div>
+                    <!-- @END_MAP )) -->
+                </div>
+            </div>
+        </div>
+    </section>
+    <!-- @END_COMPONENT: InteractiveMap -->
+
+    <!-- @COMPONENT: AdminDashboard -->
+    <section id="dashboard" class="py-16 bg-background">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between items-center mb-8">
+                <div>
+                    <h2 class="text-3xl font-bold text-foreground mb-2">Admin Dashboard</h2>
+                    <p class="text-lg text-muted-foreground">Manage and respond to community issues</p>
+                </div>
+                <div class="flex space-x-4">
+                    <button class="bg-secondary text-secondary-foreground px-4 py-2 rounded-lg font-medium transition-smooth hover:bg-secondary/90 elevation-1">
+                        <i class="fas fa-download mr-2"></i>Export Data
+                    </button>
+                    <button class="bg-primary text-primary-foreground px-4 py-2 rounded-lg font-medium transition-smooth hover:bg-primary/90 elevation-1">
+                        <i class="fas fa-plus mr-2"></i>Assign Team
+                    </button>
+                </div>
+            </div>
+
+            <!-- Stats Overview -->
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+                <div class="bg-card rounded-xl p-6 elevation-1">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-sm font-medium text-muted-foreground">Total Reports</p>
+                            <p class="text-3xl font-bold text-foreground" data-bind="stats.totalReports">247</p>
+                        </div>
+                        <div class="bg-primary/10 p-3 rounded-full">
+                            <i class="fas fa-clipboard-list text-primary text-xl"></i>
+                        </div>
+                    </div>
+                    <div class="mt-4 flex items-center text-sm">
+                        <span class="text-secondary font-medium">+12%</span>
+                        <span class="text-muted-foreground ml-1">from last month</span>
+                    </div>
+                </div>
+
+                <div class="bg-card rounded-xl p-6 elevation-1">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-sm font-medium text-muted-foreground">In Progress</p>
+                            <p class="text-3xl font-bold text-foreground" data-bind="stats.inProgress">43</p>
+                        </div>
+                        <div class="bg-accent/10 p-3 rounded-full">
+                            <i class="fas fa-tools text-accent text-xl"></i>
+                        </div>
+                    </div>
+                    <div class="mt-4 flex items-center text-sm">
+                        <span class="text-secondary font-medium">-8%</span>
+                        <span class="text-muted-foreground ml-1">from last month</span>
+                    </div>
+                </div>
+
+                <div class="bg-card rounded-xl p-6 elevation-1">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-sm font-medium text-muted-foreground">Resolved</p>
+                            <p class="text-3xl font-bold text-foreground" data-bind="stats.resolved">189</p>
+                        </div>
+                        <div class="bg-secondary/10 p-3 rounded-full">
+                            <i class="fas fa-check-circle text-secondary text-xl"></i>
+                        </div>
+                    </div>
+                    <div class="mt-4 flex items-center text-sm">
+                        <span class="text-secondary font-medium">+23%</span>
+                        <span class="text-muted-foreground ml-1">from last month</span>
+                    </div>
+                </div>
+
+                <div class="bg-card rounded-xl p-6 elevation-1">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-sm font-medium text-muted-foreground">Avg Response</p>
+                            <p class="text-3xl font-bold text-foreground" data-bind="stats.avgResponse">2.3d</p>
+                        </div>
+                        <div class="bg-purple-100 p-3 rounded-full">
+                            <i class="fas fa-clock text-purple-600 text-xl"></i>
+                        </div>
+                    </div>
+                    <div class="mt-4 flex items-center text-sm">
+                        <span class="text-secondary font-medium">-15%</span>
+                        <span class="text-muted-foreground ml-1">improvement</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Issues Table -->
+            <div class="bg-card rounded-xl elevation-2 overflow-hidden">
+                <div class="px-6 py-4 border-b border-border">
+                    <div class="flex justify-between items-center">
+                        <h3 class="text-xl font-semibold text-foreground">Recent Reports</h3>
+                        <div class="flex space-x-4">
+                            <select class="border border-border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-primary focus:border-transparent">
+                                <option>All Categories</option>
+                                <option>Infrastructure</option>
+                                <option>Environment</option>
+                                <option>Safety</option>
+                            </select>
+                            <select class="border border-border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-primary focus:border-transparent">
+                                <option>All Status</option>
+                                <option>New</option>
+                                <option>In Progress</option>
+                                <option>Resolved</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="overflow-x-auto">
+                    <table class="w-full">
+                        <thead class="bg-muted/50">
+                            <tr>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Issue</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Location</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Priority</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Status</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Assigned</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Reported</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody class="bg-card divide-y divide-border">
+                            <!-- @MAP: issues.map(issue => ( -->
+                            <tr class="hover:bg-muted/30 transition-smooth">
+                                <td class="px-6 py-4 whitespace-nowrap">
+                                    <div class="flex items-center">
+                                        <div class="bg-destructive/10 p-2 rounded-lg mr-3">
+                                            <i class="fas fa-tools text-destructive"></i>
+                                        </div>
+                                        <div>
+                                            <div class="text-sm font-medium text-foreground" data-bind="issue.title">Pothole on Main Street</div>
+                                            <div class="text-sm text-muted-foreground">Infrastructure</div>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-muted-foreground" data-bind="issue.location">Main St & 1st Ave</td>
+                                <td class="px-6 py-4 whitespace-nowrap">
+                                    <span class="bg-destructive text-destructive-foreground px-2 py-1 rounded-full text-xs font-medium">High</span>
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap">
+                                    <span class="bg-accent text-accent-foreground px-2 py-1 rounded-full text-xs font-medium">In Progress</span>
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-muted-foreground">John Smith</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-muted-foreground">2 hours ago</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm space-x-2">
+                                    <button class="text-primary hover:text-primary/80 transition-smooth">
+                                        <i class="fas fa-eye"></i>
+                                    </button>
+                                    <button class="text-secondary hover:text-secondary/80 transition-smooth">
+                                        <i class="fas fa-edit"></i>
+                                    </button>
+                                    <button class="text-muted-foreground hover:text-foreground transition-smooth">
+                                        <i class="fas fa-message"></i>
+                                    </button>
+                                </td>
+                            </tr>
+
+                            <tr class="hover:bg-muted/30 transition-smooth">
+                                <td class="px-6 py-4 whitespace-nowrap">
+                                    <div class="flex items-center">
+                                        <div class="bg-accent/10 p-2 rounded-lg mr-3">
+                                            <i class="fas fa-lightbulb text-accent"></i>
+                                        </div>
+                                        <div>
+                                            <div class="text-sm font-medium text-foreground">Broken Streetlight</div>
+                                            <div class="text-sm text-muted-foreground">Safety</div>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-muted-foreground">Oak Avenue</td>
+                                <td class="px-6 py-4 whitespace-nowrap">
+                                    <span class="bg-accent text-accent-foreground px-2 py-1 rounded-full text-xs font-medium">Medium</span>
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap">
+                                    <span class="bg-blue-100 text-blue-800 px-2 py-1 rounded-full text-xs font-medium">New</span>
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-muted-foreground">Unassigned</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-muted-foreground">1 day ago</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm space-x-2">
+                                    <button class="text-primary hover:text-primary/80 transition-smooth">
+                                        <i class="fas fa-eye"></i>
+                                    </button>
+                                    <button class="text-secondary hover:text-secondary/80 transition-smooth">
+                                        <i class="fas fa-edit"></i>
+                                    </button>
+                                    <button class="text-muted-foreground hover:text-foreground transition-smooth">
+                                        <i class="fas fa-message"></i>
+                                    </button>
+                                </td>
+                            </tr>
+
+                            <tr class="hover:bg-muted/30 transition-smooth">
+                                <td class="px-6 py-4 whitespace-nowrap">
+                                    <div class="flex items-center">
+                                        <div class="bg-secondary/10 p-2 rounded-lg mr-3">
+                                            <i class="fas fa-leaf text-secondary"></i>
+                                        </div>
+                                        <div>
+                                            <div class="text-sm font-medium text-foreground">Park Cleanup</div>
+                                            <div class="text-sm text-muted-foreground">Environment</div>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-muted-foreground">Central Park</td>
+                                <td class="px-6 py-4 whitespace-nowrap">
+                                    <span class="bg-secondary text-secondary-foreground px-2 py-1 rounded-full text-xs font-medium">Low</span>
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap">
+                                    <span class="bg-secondary text-secondary-foreground px-2 py-1 rounded-full text-xs font-medium">Resolved</span>
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-muted-foreground">Sarah Johnson</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-muted-foreground">3 days ago</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm space-x-2">
+                                    <button class="text-primary hover:text-primary/80 transition-smooth">
+                                        <i class="fas fa-eye"></i>
+                                    </button>
+                                    <button class="text-secondary hover:text-secondary/80 transition-smooth">
+                                        <i class="fas fa-edit"></i>
+                                    </button>
+                                    <button class="text-muted-foreground hover:text-foreground transition-smooth">
+                                        <i class="fas fa-message"></i>
+                                    </button>
+                                </td>
+                            </tr>
+                            <!-- @END_MAP )) -->
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="px-6 py-4 border-t border-border flex items-center justify-between">
+                    <div class="text-sm text-muted-foreground">
+                        Showing 1-10 of 247 results
+                    </div>
+                    <div class="flex space-x-2">
+                        <button class="px-3 py-1 border border-border rounded text-sm text-muted-foreground hover:bg-muted transition-smooth">Previous</button>
+                        <button class="px-3 py-1 bg-primary text-primary-foreground rounded text-sm">1</button>
+                        <button class="px-3 py-1 border border-border rounded text-sm text-muted-foreground hover:bg-muted transition-smooth">2</button>
+                        <button class="px-3 py-1 border border-border rounded text-sm text-muted-foreground hover:bg-muted transition-smooth">3</button>
+                        <button class="px-3 py-1 border border-border rounded text-sm text-muted-foreground hover:bg-muted transition-smooth">Next</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+    <!-- @END_COMPONENT: AdminDashboard -->
+
+    <!-- @COMPONENT: Footer -->
+    <footer class="bg-card border-t border-border py-12">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-8">
+                <div class="md:col-span-2">
+                    <div class="flex items-center mb-4">
+                        <i class="fas fa-hands-helping text-primary text-2xl mr-3"></i>
+                        <h3 class="text-xl font-bold text-primary">CrowdCare</h3>
+                    </div>
+                    <p class="text-muted-foreground mb-4">
+                        Empowering communities to report and resolve local issues together. 
+                        Making neighborhoods better, one report at a time.
+                    </p>
+                    <div class="flex space-x-4">
+                        <a href="#" class="text-muted-foreground hover:text-primary transition-smooth">
+                            <i class="fab fa-twitter text-xl"></i>
+                        </a>
+                        <a href="#" class="text-muted-foreground hover:text-primary transition-smooth">
+                            <i class="fab fa-facebook text-xl"></i>
+                        </a>
+                        <a href="#" class="text-muted-foreground hover:text-primary transition-smooth">
+                            <i class="fab fa-instagram text-xl"></i>
+                        </a>
+                        <a href="#" class="text-muted-foreground hover:text-primary transition-smooth">
+                            <i class="fab fa-linkedin text-xl"></i>
+                        </a>
+                    </div>
+                </div>
+                
+                <div>
+                    <h4 class="font-semibold text-foreground mb-4">Features</h4>
+                    <ul class="space-y-2 text-sm text-muted-foreground">
+                        <li><a href="#" class="hover:text-foreground transition-smooth">Report Issues</a></li>
+                        <li><a href="#" class="hover:text-foreground transition-smooth">Track Progress</a></li>
+                        <li><a href="#" class="hover:text-foreground transition-smooth">Community Map</a></li>
+                        <li><a href="#" class="hover:text-foreground transition-smooth">Admin Dashboard</a></li>
+                    </ul>
+                </div>
+                
+                <div>
+                    <h4 class="font-semibold text-foreground mb-4">Support</h4>
+                    <ul class="space-y-2 text-sm text-muted-foreground">
+                        <li><a href="#" class="hover:text-foreground transition-smooth">Help Center</a></li>
+                        <li><a href="#" class="hover:text-foreground transition-smooth">Contact Us</a></li>
+                        <li><a href="#" class="hover:text-foreground transition-smooth">Privacy Policy</a></li>
+                        <li><a href="#" class="hover:text-foreground transition-smooth">Terms of Service</a></li>
+                    </ul>
+                </div>
+            </div>
+            
+            <div class="border-t border-border mt-8 pt-8 text-center text-sm text-muted-foreground">
+                <p>&copy; 2024 CrowdCare. All rights reserved. Built for stronger communities.</p>
+            </div>
+        </div>
+    </footer>
+    <!-- @END_COMPONENT: Footer -->
+
+    <script>
+        // TODO: Implement proper state management, API integration, and business logic
+        
+        (function() {
+            // Category button interactions
+            const categoryButtons = document.querySelectorAll('.category-btn');
+            categoryButtons.forEach(btn => {
+                btn.addEventListener('click', function() {
+                    // Remove active state from all buttons
+                    categoryButtons.forEach(b => {
+                        b.classList.remove('bg-primary', 'text-primary-foreground', 'bg-secondary', 'text-secondary-foreground', 'bg-accent', 'text-accent-foreground', 'bg-purple-500', 'text-white');
+                        b.classList.add('bg-muted', 'text-muted-foreground');
+                    });
+                    
+                    // Add active state to clicked button
+                    const category = this.dataset.category;
+                    this.classList.remove('bg-muted', 'text-muted-foreground');
+                    
+                    switch(category) {
+                        case 'infrastructure':
+                            this.classList.add('bg-primary', 'text-primary-foreground');
+                            break;
+                        case 'environment':
+                            this.classList.add('bg-secondary', 'text-secondary-foreground');
+                            break;
+                        case 'safety':
+                            this.classList.add('bg-accent', 'text-accent-foreground');
+                            break;
+                        case 'community':
+                            this.classList.add('bg-purple-500', 'text-white');
+                            break;
+                    }
+                });
+            });
+
+            // Smooth scrolling for navigation
+            document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+                anchor.addEventListener('click', function (e) {
+                    e.preventDefault();
+                    const target = document.querySelector(this.getAttribute('href'));
+                    if (target) {
+                        target.scrollIntoView({
+                            behavior: 'smooth',
+                            block: 'start'
+                        });
+                    }
+                });
+            });
+
+            // Mock location detection
+            document.querySelector('button:has(.fa-crosshairs)').addEventListener('click', function() {
+                this.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Getting Location...';
+                
+                setTimeout(() => {
+                    this.innerHTML = '<i class="fas fa-check mr-2"></i>Location Found';
+                    this.classList.add('bg-secondary', 'text-secondary-foreground');
+                    this.classList.remove('bg-primary', 'text-primary-foreground');
+                    
+                    // Update address field
+                    const addressField = this.parentElement.querySelector('input[type="text"]');
+                    addressField.value = '123 Main Street, Downtown';
+                }, 2000);
+            });
+        })();
+    </script>
+</body>
+</html>

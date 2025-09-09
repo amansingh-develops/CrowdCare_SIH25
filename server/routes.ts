@@ -2,7 +2,7 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import path from "path";
 import express from "express";
-import { storage } from "./storage";
+import { storage } from "./mongodb-storage";
 import { setupAuth, isAuthenticated } from "./replitAuth";
 import { upload, saveUploadedFile, imageToBase64 } from "./services/upload";
 import { analyzeIssue, detectDuplicateIssues } from "./services/openai";
@@ -11,7 +11,7 @@ import {
   insertCommentSchema, 
   updateIssueStatusSchema,
   type IssueWithDetails 
-} from "@shared/schema";
+} from "@shared/mongodb-schema";
 import { z } from "zod";
 
 export async function registerRoutes(app: Express): Promise<Server> {
