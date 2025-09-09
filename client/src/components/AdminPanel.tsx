@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -14,6 +14,7 @@ import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { apiService } from "@/lib/api";
 import { useWebSocket } from "@/hooks/useWebSocket";
+import { motion, AnimatePresence } from "framer-motion";
 import { 
   AlertTriangle, 
   Cog, 
@@ -28,7 +29,12 @@ import {
   ChevronLeft,
   ChevronRight,
   RefreshCw,
-  FileText
+  FileText,
+  TrendingUp,
+  Users,
+  Shield,
+  BarChart3,
+  Activity
 } from "lucide-react";
 import type { IssueWithDetails } from "@shared/schema";
 import { ISSUE_CATEGORIES, ISSUE_STATUSES } from "@/types";
@@ -44,10 +50,59 @@ export function AdminPanel() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isEvidenceModalOpen, setIsEvidenceModalOpen] = useState(false);
   const [issueToResolve, setIssueToResolve] = useState<IssueWithDetails | null>(null);
+  const [isLoaded, setIsLoaded] = useState(false);
   
   const { user } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
+
+  useEffect(() => {
+    setIsLoaded(true);
+  }, []);
+
+  const containerVariants = {
+    hidden: { opacity: 0 },
+    visible: {
+      opacity: 1,
+      transition: {
+        duration: 0.6,
+        staggerChildren: 0.1
+      }
+    }
+  };
+
+  const itemVariants = {
+    hidden: { opacity: 0, y: 20 },
+    visible: {
+      opacity: 1,
+      y: 0,
+      transition: {
+        duration: 0.5,
+        ease: "easeOut"
+      }
+    }
+  };
+
+  const cardVariants = {
+    hidden: { opacity: 0, scale: 0.9, y: 30 },
+    visible: {
+      opacity: 1,
+      scale: 1,
+      y: 0,
+      transition: {
+        duration: 0.6,
+        ease: "easeOut"
+      }
+    },
+    hover: {
+      scale: 1.02,
+      y: -5,
+      transition: {
+        duration: 0.2,
+        ease: "easeInOut"
+      }
+    }
+  };
   
   const itemsPerPage = 10;
 
@@ -241,397 +296,672 @@ export function AdminPanel() {
   const totalPages = Math.ceil(filteredIssues.length / itemsPerPage);
 
   return (
-    <div className="space-y-8">
-      {/* Header */}
-      <div className="flex justify-between items-center">
-        <div>
-          <h2 className="text-3xl font-bold text-primary">Department Dashboard</h2>
-          <p className="text-muted-foreground mt-1">
+    <motion.div 
+      className="space-y-8"
+      variants={containerVariants}
+      initial="hidden"
+      animate={isLoaded ? "visible" : "hidden"}
+    >
+      {/* Enhanced Header */}
+      <motion.div 
+        className="flex flex-col lg:flex-row lg:justify-between lg:items-center gap-6"
+        variants={itemVariants}
+      >
+        <motion.div
+          initial={{ opacity: 0, x: -20 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ duration: 0.6, delay: 0.1 }}
+        >
+          <h2 className="text-4xl font-bold bg-gradient-to-r from-blue-600 to-green-600 bg-clip-text text-transparent">
+            Department Dashboard
+          </h2>
+          <p className="text-gray-600 mt-2 text-lg">
             {user?.department?.name || 'City Public Works Department'}
           </p>
-        </div>
-        <div className="flex items-center space-x-4">
-          <Select value={categoryFilter} onValueChange={setCategoryFilter}>
-            <SelectTrigger className="w-48" data-testid="select-department-filter">
-              <SelectValue placeholder="All Departments" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="">All Departments</SelectItem>
-              <SelectItem value="roads_transportation">Public Works</SelectItem>
-              <SelectItem value="parks_recreation">Parks & Recreation</SelectItem>
-              <SelectItem value="public_safety">Public Safety</SelectItem>
-            </SelectContent>
-          </Select>
-          <Button variant="outline" data-testid="button-export-reports">
-            <Download className="w-4 h-4 mr-2" />
-            Export
-          </Button>
+        </motion.div>
+        <motion.div 
+          className="flex flex-col sm:flex-row items-start sm:items-center gap-4"
+          initial={{ opacity: 0, x: 20 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ duration: 0.6, delay: 0.2 }}
+        >
+          <motion.div
+            whileHover={{ scale: 1.02 }}
+            transition={{ duration: 0.2 }}
+          >
+            <Select value={categoryFilter} onValueChange={setCategoryFilter}>
+              <SelectTrigger className="w-48 bg-white/80 border-gray-200" data-testid="select-department-filter">
+                <SelectValue placeholder="All Departments" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="">All Departments</SelectItem>
+                <SelectItem value="roads_transportation">Public Works</SelectItem>
+                <SelectItem value="parks_recreation">Parks & Recreation</SelectItem>
+                <SelectItem value="public_safety">Public Safety</SelectItem>
+              </SelectContent>
+            </Select>
+          </motion.div>
+          <motion.div
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+          >
+            <Button 
+              variant="outline" 
+              data-testid="button-export-reports"
+              className="bg-white/80 hover:bg-white border-gray-200"
+            >
+              <Download className="w-4 h-4 mr-2" />
+              Export
+            </Button>
+          </motion.div>
           {isConnected && (
-            <Badge variant="secondary" className="flex items-center gap-1">
-              <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-              Live Updates
-            </Badge>
+            <motion.div
+              initial={{ scale: 0 }}
+              animate={{ scale: 1 }}
+              transition={{ duration: 0.3, delay: 0.5 }}
+            >
+              <Badge variant="secondary" className="flex items-center gap-2 bg-green-100 text-green-800 border-green-200">
+                <motion.div 
+                  className="w-2 h-2 bg-green-500 rounded-full"
+                  animate={{ scale: [1, 1.2, 1] }}
+                  transition={{ duration: 2, repeat: Infinity }}
+                />
+                Live Updates
+              </Badge>
+            </motion.div>
           )}
-        </div>
-      </div>
+        </motion.div>
+      </motion.div>
 
-      {/* Key Metrics */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-        <Card className="border-l-4 border-accent">
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <h3 className="text-2xl font-bold text-accent" data-testid="metric-pending">
-                  {stats?.new || 0}
-                </h3>
-                <p className="text-sm text-muted-foreground">Pending Issues</p>
+      {/* Enhanced Key Metrics */}
+      <motion.div 
+        className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6"
+        variants={containerVariants}
+      >
+        <motion.div
+          variants={cardVariants}
+          whileHover="hover"
+        >
+          <Card className="border-l-4 border-orange-500 bg-gradient-to-br from-orange-50 to-orange-100 shadow-lg hover:shadow-xl transition-all duration-300">
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <motion.h3 
+                    className="text-3xl font-bold text-orange-600" 
+                    data-testid="metric-pending"
+                    initial={{ scale: 0 }}
+                    animate={{ scale: 1 }}
+                    transition={{ duration: 0.5, delay: 0.3 }}
+                  >
+                    {stats?.new || 0}
+                  </motion.h3>
+                  <p className="text-sm text-orange-700 font-medium">Pending Issues</p>
+                </div>
+                <motion.div
+                  whileHover={{ rotate: 10, scale: 1.1 }}
+                  transition={{ duration: 0.2 }}
+                >
+                  <AlertTriangle className="text-orange-600 text-3xl" />
+                </motion.div>
               </div>
-              <AlertTriangle className="text-accent text-2xl" />
-            </div>
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
+        </motion.div>
         
-        <Card className="border-l-4 border-primary">
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <h3 className="text-2xl font-bold text-primary" data-testid="metric-in-progress">
-                  {stats?.inProgress || 0}
-                </h3>
-                <p className="text-sm text-muted-foreground">In Progress</p>
+        <motion.div
+          variants={cardVariants}
+          whileHover="hover"
+        >
+          <Card className="border-l-4 border-blue-500 bg-gradient-to-br from-blue-50 to-blue-100 shadow-lg hover:shadow-xl transition-all duration-300">
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <motion.h3 
+                    className="text-3xl font-bold text-blue-600" 
+                    data-testid="metric-in-progress"
+                    initial={{ scale: 0 }}
+                    animate={{ scale: 1 }}
+                    transition={{ duration: 0.5, delay: 0.4 }}
+                  >
+                    {stats?.inProgress || 0}
+                  </motion.h3>
+                  <p className="text-sm text-blue-700 font-medium">In Progress</p>
+                </div>
+                <motion.div
+                  whileHover={{ rotate: -10, scale: 1.1 }}
+                  transition={{ duration: 0.2 }}
+                >
+                  <Cog className="text-blue-600 text-3xl" />
+                </motion.div>
               </div>
-              <Cog className="text-primary text-2xl" />
-            </div>
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
+        </motion.div>
         
-        <Card className="border-l-4 border-secondary">
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <h3 className="text-2xl font-bold text-secondary" data-testid="metric-resolved">
-                  {stats?.resolved || 0}
-                </h3>
-                <p className="text-sm text-muted-foreground">Resolved This Month</p>
+        <motion.div
+          variants={cardVariants}
+          whileHover="hover"
+        >
+          <Card className="border-l-4 border-green-500 bg-gradient-to-br from-green-50 to-green-100 shadow-lg hover:shadow-xl transition-all duration-300">
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <motion.h3 
+                    className="text-3xl font-bold text-green-600" 
+                    data-testid="metric-resolved"
+                    initial={{ scale: 0 }}
+                    animate={{ scale: 1 }}
+                    transition={{ duration: 0.5, delay: 0.5 }}
+                  >
+                    {stats?.resolved || 0}
+                  </motion.h3>
+                  <p className="text-sm text-green-700 font-medium">Resolved This Month</p>
+                </div>
+                <motion.div
+                  whileHover={{ rotate: 10, scale: 1.1 }}
+                  transition={{ duration: 0.2 }}
+                >
+                  <CheckCircle className="text-green-600 text-3xl" />
+                </motion.div>
               </div>
-              <CheckCircle className="text-secondary text-2xl" />
-            </div>
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
+        </motion.div>
         
-        <Card className="border-l-4 border-muted">
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <h3 className="text-2xl font-bold" data-testid="metric-avg-resolution">
-                  {stats?.avgResolutionTime || 0}
-                </h3>
-                <p className="text-sm text-muted-foreground">Avg Days to Resolve</p>
+        <motion.div
+          variants={cardVariants}
+          whileHover="hover"
+        >
+          <Card className="border-l-4 border-purple-500 bg-gradient-to-br from-purple-50 to-purple-100 shadow-lg hover:shadow-xl transition-all duration-300">
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <motion.h3 
+                    className="text-3xl font-bold text-purple-600" 
+                    data-testid="metric-avg-resolution"
+                    initial={{ scale: 0 }}
+                    animate={{ scale: 1 }}
+                    transition={{ duration: 0.5, delay: 0.6 }}
+                  >
+                    {stats?.avgResolutionTime || 0}
+                  </motion.h3>
+                  <p className="text-sm text-purple-700 font-medium">Avg Days to Resolve</p>
+                </div>
+                <motion.div
+                  whileHover={{ rotate: -10, scale: 1.1 }}
+                  transition={{ duration: 0.2 }}
+                >
+                  <Clock className="text-purple-600 text-3xl" />
+                </motion.div>
               </div>
-              <Clock className="text-muted-foreground text-2xl" />
-            </div>
-          </CardContent>
-        </Card>
-      </div>
+            </CardContent>
+          </Card>
+        </motion.div>
+      </motion.div>
 
-      {/* Issues Management Table */}
-      <Card className="shadow-lg overflow-hidden">
-        <CardHeader className="border-b border-border">
-          <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3">
-            <div>
-              <CardTitle>Issue Management</CardTitle>
-              <p className="text-sm text-muted-foreground mt-1">
-                Issues ranked by: Priority (Urgent &gt; High &gt; Medium &gt; Low) → Upvotes → Date Created
-              </p>
-            </div>
-            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full sm:w-auto">
-              <Input
-                placeholder="Search issues..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full sm:w-64"
-                data-testid="input-search-issues"
-              />
-              <Select value={statusFilter} onValueChange={setStatusFilter}>
-                <SelectTrigger className="w-full sm:w-40" data-testid="select-status-filter">
-                  <SelectValue placeholder="All Status" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="">All Status</SelectItem>
-                  {ISSUE_STATUSES.map(status => (
-                    <SelectItem key={status.value} value={status.value}>
-                      {status.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <Button variant="outline" size="sm" className="w-full sm:w-auto" data-testid="button-advanced-filter">
-                <Filter className="w-4 h-4 mr-2" />
-                Filter
-              </Button>
-              <Button 
-                variant="outline" 
-                size="sm" 
-                onClick={() => refetch()}
-                disabled={isLoading}
-                className="w-full sm:w-auto"
-                data-testid="button-refresh-issues"
-              >
-                <RefreshCw className={`w-4 h-4 mr-2 ${isLoading ? 'animate-spin' : ''}`} />
-                Refresh
-              </Button>
-            </div>
-          </div>
-        </CardHeader>
+      {/* Enhanced Issues Management Table */}
+      <motion.div
+        variants={cardVariants}
+        whileHover="hover"
+      >
+        <Card className="shadow-xl overflow-hidden bg-white/80 backdrop-blur-sm border-gray-200">
+          <CardHeader className="border-b border-gray-200 bg-gradient-to-r from-gray-50 to-gray-100">
+            <motion.div 
+              className="flex flex-col lg:flex-row lg:justify-between lg:items-center gap-6"
+              initial={{ opacity: 0, y: -20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.6, delay: 0.7 }}
+            >
+              <div>
+                <CardTitle className="text-2xl font-bold text-gray-800">Issue Management</CardTitle>
+                <p className="text-sm text-gray-600 mt-2">
+                  Issues ranked by: Priority (Urgent &gt; High &gt; Medium &gt; Low) → Upvotes → Date Created
+                </p>
+              </div>
+              <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-4 w-full lg:w-auto">
+                <motion.div
+                  whileHover={{ scale: 1.02 }}
+                  transition={{ duration: 0.2 }}
+                >
+                  <Input
+                    placeholder="Search issues..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="w-full sm:w-64 bg-white border-gray-200"
+                    data-testid="input-search-issues"
+                  />
+                </motion.div>
+                <motion.div
+                  whileHover={{ scale: 1.02 }}
+                  transition={{ duration: 0.2 }}
+                >
+                  <Select value={statusFilter} onValueChange={setStatusFilter}>
+                    <SelectTrigger className="w-full sm:w-40 bg-white border-gray-200" data-testid="select-status-filter">
+                      <SelectValue placeholder="All Status" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="">All Status</SelectItem>
+                      {ISSUE_STATUSES.map(status => (
+                        <SelectItem key={status.value} value={status.value}>
+                          {status.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </motion.div>
+                <motion.div
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                >
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    className="w-full sm:w-auto bg-white hover:bg-gray-50 border-gray-200" 
+                    data-testid="button-advanced-filter"
+                  >
+                    <Filter className="w-4 h-4 mr-2" />
+                    Filter
+                  </Button>
+                </motion.div>
+                <motion.div
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                >
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    onClick={() => refetch()}
+                    disabled={isLoading}
+                    className="w-full sm:w-auto bg-white hover:bg-gray-50 border-gray-200"
+                    data-testid="button-refresh-issues"
+                  >
+                    <RefreshCw className={`w-4 h-4 mr-2 ${isLoading ? 'animate-spin' : ''}`} />
+                    Refresh
+                  </Button>
+                </motion.div>
+              </div>
+            </motion.div>
+          </CardHeader>
         
         <CardContent className="p-0">
           {isLoading ? (
-            <div className="p-8 text-center">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
-              <p className="text-muted-foreground mt-2">Loading issues...</p>
-            </div>
+            <motion.div 
+              className="p-12 text-center"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ duration: 0.5 }}
+            >
+              <motion.div 
+                className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"
+                animate={{ rotate: 360 }}
+                transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+              />
+              <p className="text-gray-600 mt-4 font-medium">Loading issues...</p>
+            </motion.div>
           ) : (
             <div className="overflow-x-auto">
               <Table>
-                <TableHeader className="bg-muted/30">
+                <TableHeader className="bg-gradient-to-r from-gray-50 to-gray-100">
                   <TableRow>
-                    <TableHead className="w-12">Rank</TableHead>
-                    <TableHead>Issue</TableHead>
-                    <TableHead>Category</TableHead>
-                    <TableHead>Location</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead>Priority</TableHead>
-                    <TableHead>Upvotes</TableHead>
-                    <TableHead>Assigned</TableHead>
-                    <TableHead>Actions</TableHead>
+                    <TableHead className="w-12 font-semibold text-gray-800">Rank</TableHead>
+                    <TableHead className="font-semibold text-gray-800">Issue</TableHead>
+                    <TableHead className="font-semibold text-gray-800">Category</TableHead>
+                    <TableHead className="font-semibold text-gray-800">Location</TableHead>
+                    <TableHead className="font-semibold text-gray-800">Status</TableHead>
+                    <TableHead className="font-semibold text-gray-800">Priority</TableHead>
+                    <TableHead className="font-semibold text-gray-800">Upvotes</TableHead>
+                    <TableHead className="font-semibold text-gray-800">Assigned</TableHead>
+                    <TableHead className="font-semibold text-gray-800">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {filteredIssues.map((issue: IssueWithDetails, index: number) => (
-                    <TableRow key={issue.id} className="hover:bg-muted/10" data-testid={`row-issue-${issue.id}`}>
-                      <TableCell className="text-center font-bold">
-                        <Badge variant="secondary" className="font-mono">
-                          #{index + 1}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex items-center space-x-3">
-                          {issue.images && issue.images.length > 0 ? (
-                            <img
-                              src={`/uploads/${issue.images[0].filePath}`}
-                              alt="Issue"
-                              className="w-12 h-8 object-cover rounded"
-                              data-testid={`img-issue-thumbnail-${issue.id}`}
-                              loading="lazy"
-                              onError={(e) => {
-                                e.currentTarget.style.display = 'none';
-                              }}
-                            />
-                          ) : (
-                            <div className="w-12 h-8 bg-muted rounded flex items-center justify-center">
-                              <span className="text-xs text-muted-foreground">No image</span>
-                            </div>
-                          )}
-                          <div>
-                            <div className="font-medium" data-testid={`text-issue-title-${issue.id}`}>
-                              {issue.title}
-                            </div>
-                            <div className="text-sm text-muted-foreground">
-                              Reported {formatISTDateTime(issue.createdAt)}
+                  <AnimatePresence>
+                    {filteredIssues.map((issue: IssueWithDetails, index: number) => (
+                      <motion.tr 
+                        key={issue.id} 
+                        className="hover:bg-gray-50 transition-colors duration-200 border-b border-gray-100" 
+                        data-testid={`row-issue-${issue.id}`}
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: -20 }}
+                        transition={{ duration: 0.3, delay: index * 0.05 }}
+                        whileHover={{ scale: 1.01, backgroundColor: "rgba(249, 250, 251, 0.8)" }}
+                      >
+                        <TableCell className="text-center font-bold py-4">
+                          <motion.div
+                            whileHover={{ scale: 1.1 }}
+                            transition={{ duration: 0.2 }}
+                          >
+                            <Badge variant="secondary" className="font-mono bg-gradient-to-r from-blue-100 to-green-100 text-blue-800 border-blue-200">
+                              #{index + 1}
+                            </Badge>
+                          </motion.div>
+                        </TableCell>
+                        <TableCell className="py-4">
+                          <div className="flex items-center space-x-3">
+                            {issue.images && issue.images.length > 0 ? (
+                              <motion.img
+                                src={`/uploads/${issue.images[0].filePath}`}
+                                alt="Issue"
+                                className="w-12 h-8 object-cover rounded shadow-sm"
+                                data-testid={`img-issue-thumbnail-${issue.id}`}
+                                loading="lazy"
+                                whileHover={{ scale: 1.1 }}
+                                transition={{ duration: 0.2 }}
+                                onError={(e) => {
+                                  e.currentTarget.style.display = 'none';
+                                }}
+                              />
+                            ) : (
+                              <div className="w-12 h-8 bg-gray-100 rounded flex items-center justify-center border border-gray-200">
+                                <span className="text-xs text-gray-500">No image</span>
+                              </div>
+                            )}
+                            <div>
+                              <div className="font-semibold text-gray-800" data-testid={`text-issue-title-${issue.id}`}>
+                                {issue.title}
+                              </div>
+                              <div className="text-sm text-gray-600">
+                                Reported {formatISTDateTime(issue.createdAt)}
+                              </div>
                             </div>
                           </div>
-                        </div>
-                      </TableCell>
-                      <TableCell className="text-sm">
-                        {ISSUE_CATEGORIES.find(c => c.value === issue.category)?.label}
-                      </TableCell>
-                      <TableCell className="text-sm" data-testid={`text-issue-location-${issue.id}`}>
-                        {issue.location}
-                      </TableCell>
-                      <TableCell>
-                        <StatusBadge status={issue.status} />
-                      </TableCell>
-                      <TableCell>
-                        <StatusBadge priority={issue.priority} />
-                      </TableCell>
-                      <TableCell className="text-sm text-center">
-                        <Badge variant="outline" className="font-mono">
-                          {issue.upvotes || 0}
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="text-sm">
-                        {issue.assignedTo?.firstName || 'Unassigned'}
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex items-center space-x-2">
-                          <Button 
-                            variant="ghost" 
-                            size="sm"
-                            onClick={() => handleViewIssue(issue)}
-                            disabled={isDialogLoading}
-                            data-testid={`button-view-issue-${issue.id}`}
+                        </TableCell>
+                        <TableCell className="text-sm py-4">
+                          <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">
+                            {ISSUE_CATEGORIES.find(c => c.value === issue.category)?.label}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="text-sm py-4 text-gray-700" data-testid={`text-issue-location-${issue.id}`}>
+                          {issue.location}
+                        </TableCell>
+                        <TableCell className="py-4">
+                          <StatusBadge status={issue.status} />
+                        </TableCell>
+                        <TableCell className="py-4">
+                          <StatusBadge priority={issue.priority} />
+                        </TableCell>
+                        <TableCell className="text-sm text-center py-4">
+                          <motion.div
+                            whileHover={{ scale: 1.1 }}
+                            transition={{ duration: 0.2 }}
                           >
-                            <Eye className="w-4 h-4" />
-                          </Button>
-                          
-                          <Button 
-                            variant="ghost" 
-                            size="sm"
-                            data-testid={`button-edit-issue-${issue.id}`}
-                          >
-                            <Edit className="w-4 h-4" />
-                          </Button>
-                          
-                          {issue.status !== 'resolved' ? (
-                            <div className="flex gap-2">
-                              <Select
-                                value={issue.status}
-                                onValueChange={(newStatus) => {
-                                  console.log('Status changed to:', newStatus);
-                                  if (newStatus === 'resolved') {
-                                    handleResolveIssue(issue);
-                                  } else {
-                                    handleStatusUpdate(issue.id, newStatus);
-                                  }
-                                }}
-                              >
-                                <SelectTrigger className="w-28 h-8">
-                                  <SelectValue />
-                                </SelectTrigger>
-                                <SelectContent>
-                                  {ISSUE_STATUSES.map(status => (
-                                    <SelectItem key={status.value} value={status.value}>
-                                      {status.label}
-                                    </SelectItem>
-                                  ))}
-                                </SelectContent>
-                              </Select>
-                              <Button
-                                variant="default"
-                                size="sm"
-                                onClick={() => handleResolveIssue(issue)}
-                                className="h-8 px-3 text-xs bg-green-600 hover:bg-green-700"
-                                title="Resolve issue - automatically determines if evidence is required"
-                              >
-                                <CheckCircle className="w-3 h-3 mr-1" />
-                                Resolve
-                              </Button>
-                            </div>
-                          ) : (
-                            <Badge variant="secondary" className="w-32 h-8 flex items-center justify-center">
-                              Resolved
+                            <Badge variant="outline" className="font-mono bg-green-50 text-green-700 border-green-200">
+                              {issue.upvotes || 0}
                             </Badge>
-                          )}
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ))}
+                          </motion.div>
+                        </TableCell>
+                        <TableCell className="text-sm py-4 text-gray-700">
+                          {issue.assignedTo?.firstName || 'Unassigned'}
+                        </TableCell>
+                        <TableCell className="py-4">
+                          <div className="flex items-center space-x-2">
+                            <motion.div
+                              whileHover={{ scale: 1.1 }}
+                              whileTap={{ scale: 0.9 }}
+                            >
+                              <Button 
+                                variant="ghost" 
+                                size="sm"
+                                onClick={() => handleViewIssue(issue)}
+                                disabled={isDialogLoading}
+                                data-testid={`button-view-issue-${issue.id}`}
+                                className="hover:bg-blue-100 hover:text-blue-700"
+                              >
+                                <Eye className="w-4 h-4" />
+                              </Button>
+                            </motion.div>
+                            
+                            <motion.div
+                              whileHover={{ scale: 1.1 }}
+                              whileTap={{ scale: 0.9 }}
+                            >
+                              <Button 
+                                variant="ghost" 
+                                size="sm"
+                                data-testid={`button-edit-issue-${issue.id}`}
+                                className="hover:bg-green-100 hover:text-green-700"
+                              >
+                                <Edit className="w-4 h-4" />
+                              </Button>
+                            </motion.div>
+                            
+                            {issue.status !== 'resolved' ? (
+                              <div className="flex gap-2">
+                                <motion.div
+                                  whileHover={{ scale: 1.02 }}
+                                  transition={{ duration: 0.2 }}
+                                >
+                                  <Select
+                                    value={issue.status}
+                                    onValueChange={(newStatus) => {
+                                      console.log('Status changed to:', newStatus);
+                                      if (newStatus === 'resolved') {
+                                        handleResolveIssue(issue);
+                                      } else {
+                                        handleStatusUpdate(issue.id, newStatus);
+                                      }
+                                    }}
+                                  >
+                                    <SelectTrigger className="w-28 h-8 bg-white border-gray-200">
+                                      <SelectValue />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                      {ISSUE_STATUSES.map(status => (
+                                        <SelectItem key={status.value} value={status.value}>
+                                          {status.label}
+                                        </SelectItem>
+                                      ))}
+                                    </SelectContent>
+                                  </Select>
+                                </motion.div>
+                                <motion.div
+                                  whileHover={{ scale: 1.05 }}
+                                  whileTap={{ scale: 0.95 }}
+                                >
+                                  <Button
+                                    variant="default"
+                                    size="sm"
+                                    onClick={() => handleResolveIssue(issue)}
+                                    className="h-8 px-3 text-xs bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 text-white shadow-md"
+                                    title="Resolve issue - automatically determines if evidence is required"
+                                  >
+                                    <CheckCircle className="w-3 h-3 mr-1" />
+                                    Resolve
+                                  </Button>
+                                </motion.div>
+                              </div>
+                            ) : (
+                              <motion.div
+                                initial={{ scale: 0 }}
+                                animate={{ scale: 1 }}
+                                transition={{ duration: 0.3 }}
+                              >
+                                <Badge variant="secondary" className="w-32 h-8 flex items-center justify-center bg-green-100 text-green-800 border-green-200">
+                                  Resolved
+                                </Badge>
+                              </motion.div>
+                            )}
+                          </div>
+                        </TableCell>
+                      </motion.tr>
+                    ))}
+                  </AnimatePresence>
                 </TableBody>
               </Table>
             </div>
           )}
           
-          {/* Pagination */}
-          <div className="bg-muted/30 px-6 py-3 flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 border-t border-border">
-            <div className="text-sm text-muted-foreground" data-testid="text-pagination-info">
+          {/* Enhanced Pagination */}
+          <motion.div 
+            className="bg-gradient-to-r from-gray-50 to-gray-100 px-6 py-4 flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 border-t border-gray-200"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, delay: 0.8 }}
+          >
+            <div className="text-sm text-gray-600 font-medium" data-testid="text-pagination-info">
               Showing {((currentPage - 1) * itemsPerPage) + 1} to {Math.min(currentPage * itemsPerPage, filteredIssues.length)} of {filteredIssues.length} issues
             </div>
             <div className="flex items-center space-x-2 flex-wrap gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
-                disabled={currentPage === 1}
-                data-testid="button-previous-page"
+              <motion.div
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
               >
-                <ChevronLeft className="w-4 h-4" />
-                Previous
-              </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                  disabled={currentPage === 1}
+                  data-testid="button-previous-page"
+                  className="bg-white hover:bg-gray-50 border-gray-200"
+                >
+                  <ChevronLeft className="w-4 h-4" />
+                  Previous
+                </Button>
+              </motion.div>
               <div className="flex space-x-1">
                 {[...Array(Math.min(5, totalPages))].map((_, i) => {
                   const page = i + 1;
                   return (
-                    <Button
+                    <motion.div
                       key={page}
-                      variant={currentPage === page ? "default" : "outline"}
-                      size="sm"
-                      onClick={() => setCurrentPage(page)}
-                      data-testid={`button-page-${page}`}
+                      whileHover={{ scale: 1.1 }}
+                      whileTap={{ scale: 0.9 }}
                     >
-                      {page}
-                    </Button>
+                      <Button
+                        variant={currentPage === page ? "default" : "outline"}
+                        size="sm"
+                        onClick={() => setCurrentPage(page)}
+                        data-testid={`button-page-${page}`}
+                        className={currentPage === page 
+                          ? "bg-blue-600 hover:bg-blue-700 text-white" 
+                          : "bg-white hover:bg-gray-50 border-gray-200"
+                        }
+                      >
+                        {page}
+                      </Button>
+                    </motion.div>
                   );
                 })}
               </div>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
-                disabled={currentPage === totalPages}
-                data-testid="button-next-page"
+              <motion.div
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
               >
-                Next
-                <ChevronRight className="w-4 h-4" />
-              </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+                  disabled={currentPage === totalPages}
+                  data-testid="button-next-page"
+                  className="bg-white hover:bg-gray-50 border-gray-200"
+                >
+                  Next
+                  <ChevronRight className="w-4 h-4" />
+                </Button>
+              </motion.div>
             </div>
-          </div>
+          </motion.div>
         </CardContent>
       </Card>
+      </motion.div>
 
-      {/* Analytics Section */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+      {/* Enhanced Analytics Section */}
+      <motion.div 
+        className="grid grid-cols-1 lg:grid-cols-2 gap-8"
+        variants={containerVariants}
+      >
         {/* SLA Performance Chart */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center">
-              <div className="w-2 h-6 bg-primary rounded mr-3"></div>
-              SLA Performance
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="h-64 bg-muted/20 rounded-lg flex items-center justify-center">
-              <div className="text-center">
-                <div className="text-6xl text-muted-foreground mb-4">📊</div>
-                <p className="text-muted-foreground">Interactive SLA tracking chart</p>
-                <p className="text-sm text-muted-foreground mt-2">Shows resolution times by category</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+        <motion.div
+          variants={cardVariants}
+          whileHover="hover"
+        >
+          <Card className="bg-white/80 backdrop-blur-sm border-gray-200 shadow-xl">
+            <CardHeader className="bg-gradient-to-r from-blue-50 to-green-50">
+              <CardTitle className="flex items-center text-gray-800">
+                <motion.div 
+                  className="w-3 h-8 bg-gradient-to-b from-blue-500 to-green-500 rounded mr-3"
+                  whileHover={{ scale: 1.1 }}
+                  transition={{ duration: 0.2 }}
+                />
+                <BarChart3 className="w-5 h-5 mr-2 text-blue-600" />
+                SLA Performance
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="p-6">
+              <motion.div 
+                className="h-64 bg-gradient-to-br from-gray-50 to-gray-100 rounded-xl flex items-center justify-center border border-gray-200"
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ duration: 0.5, delay: 0.9 }}
+              >
+                <div className="text-center">
+                  <motion.div 
+                    className="text-6xl mb-4"
+                    animate={{ rotate: [0, 5, -5, 0] }}
+                    transition={{ duration: 2, repeat: Infinity }}
+                  >
+                    📊
+                  </motion.div>
+                  <p className="text-gray-600 font-medium">Interactive SLA tracking chart</p>
+                  <p className="text-sm text-gray-500 mt-2">Shows resolution times by category</p>
+                </div>
+              </motion.div>
+            </CardContent>
+          </Card>
+        </motion.div>
         
         {/* Department Workload */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center">
-              <div className="w-2 h-6 bg-secondary rounded mr-3"></div>
-              Department Workload
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              {[
-                { name: 'Public Works', percentage: 75, color: 'bg-accent' },
-                { name: 'Parks & Recreation', percentage: 45, color: 'bg-primary' },
-                { name: 'Public Safety', percentage: 60, color: 'bg-secondary' },
-                { name: 'Sanitation', percentage: 30, color: 'bg-primary' },
-              ].map((dept) => (
-                <div key={dept.name} className="flex items-center justify-between">
-                  <span className="font-medium">{dept.name}</span>
-                  <div className="flex items-center space-x-2">
-                    <div className="w-32 bg-muted rounded-full h-2">
-                      <div 
-                        className={`${dept.color} h-2 rounded-full transition-all duration-300`}
-                        style={{ width: `${dept.percentage}%` }}
-                      ></div>
+        <motion.div
+          variants={cardVariants}
+          whileHover="hover"
+        >
+          <Card className="bg-white/80 backdrop-blur-sm border-gray-200 shadow-xl">
+            <CardHeader className="bg-gradient-to-r from-green-50 to-blue-50">
+              <CardTitle className="flex items-center text-gray-800">
+                <motion.div 
+                  className="w-3 h-8 bg-gradient-to-b from-green-500 to-blue-500 rounded mr-3"
+                  whileHover={{ scale: 1.1 }}
+                  transition={{ duration: 0.2 }}
+                />
+                <Users className="w-5 h-5 mr-2 text-green-600" />
+                Department Workload
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="p-6">
+              <div className="space-y-6">
+                {[
+                  { name: 'Public Works', percentage: 75, color: 'bg-gradient-to-r from-orange-400 to-orange-500' },
+                  { name: 'Parks & Recreation', percentage: 45, color: 'bg-gradient-to-r from-blue-400 to-blue-500' },
+                  { name: 'Public Safety', percentage: 60, color: 'bg-gradient-to-r from-green-400 to-green-500' },
+                  { name: 'Sanitation', percentage: 30, color: 'bg-gradient-to-r from-purple-400 to-purple-500' },
+                ].map((dept, index) => (
+                  <motion.div 
+                    key={dept.name} 
+                    className="flex items-center justify-between"
+                    initial={{ opacity: 0, x: -20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ duration: 0.5, delay: 1.0 + index * 0.1 }}
+                  >
+                    <span className="font-semibold text-gray-800">{dept.name}</span>
+                    <div className="flex items-center space-x-3">
+                      <div className="w-32 bg-gray-200 rounded-full h-3 shadow-inner">
+                        <motion.div 
+                          className={`${dept.color} h-3 rounded-full shadow-sm`}
+                          initial={{ width: 0 }}
+                          animate={{ width: `${dept.percentage}%` }}
+                          transition={{ duration: 1, delay: 1.2 + index * 0.1, ease: "easeOut" }}
+                        />
+                      </div>
+                      <span className="text-sm font-semibold text-gray-600 w-8">{dept.percentage}%</span>
                     </div>
-                    <span className="text-sm text-muted-foreground w-8">{dept.percentage}%</span>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-      </div>
+                  </motion.div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        </motion.div>
+      </motion.div>
 
       {/* Single Dialog for Issue Details */}
       <Dialog open={isDialogOpen} onOpenChange={(open) => {
@@ -778,6 +1108,6 @@ export function AdminPanel() {
           <div>Issue to Resolve: {issueToResolve ? issueToResolve.id : 'None'}</div>
         </div>
       )}
-    </div>
+    </motion.div>
   );
 }
