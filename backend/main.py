@@ -15,7 +15,7 @@ from models import Base
 from services.exif_service import extract_gps_from_image
 from services.storage_service import upload_image_to_storage
 from services.report_service import create_report
-from services.ai_service import ai_service
+from services.ai_service import ai_service, AISummaryRequest, AISummaryResponse
 from services.department_service import department_service
 from services.resolution_service import resolution_service
 from services.status_service import status_service
@@ -74,6 +74,24 @@ async def root():
 @app.get("/health")
 async def health_check():
     return {"status": "healthy", "message": "CrowdCare API v2.0 is running"}
+
+@app.post("/api/ai/generate-summary", response_model=AISummaryResponse)
+async def generate_ai_summary(request: AISummaryRequest):
+    """
+    Generate AI-powered summary for reports using OpenAI when available
+    """
+    try:
+        logger.info(f"Generating AI summary for category: {request.category}")
+        
+        # Use the AI service to generate summary (includes OpenAI integration)
+        ai_summary = await ai_service.generate_summary(request)
+        
+        logger.info(f"AI summary generated successfully: {ai_summary.title}")
+        return ai_summary
+        
+    except Exception as e:
+        logger.error(f"Error generating AI summary: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"AI summary generation failed: {str(e)}")
 
 # Gamification profile
 @app.get("/gamification/profile")

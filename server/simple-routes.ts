@@ -233,3 +233,4 @@ export async function registerSimpleRoutes(app: Express): Promise<Server> {
   const httpServer = createServer(app);
   return httpServer;
 }
+

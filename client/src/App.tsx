@@ -5,7 +5,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { LanguageProvider, useLanguage } from "@/contexts/LanguageContext";
 import { AnimationProvider } from "@/components/AnimationProvider";
-import { useAuth } from "@/hooks/useAuth";
+import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import LandingPage from "@/pages/LandingPage";
 import CitizenAuth from "@/pages/CitizenAuth";
 import AdminAuth from "@/pages/AdminAuth";
@@ -54,12 +54,14 @@ function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <LanguageProvider>
-        <AnimationProvider>
-          <TooltipProvider>
-            <Toaster />
-            <Router />
-          </TooltipProvider>
-        </AnimationProvider>
+        <AuthProvider>
+          <AnimationProvider>
+            <TooltipProvider>
+              <Toaster />
+              <Router />
+            </TooltipProvider>
+          </AnimationProvider>
+        </AuthProvider>
       </LanguageProvider>
     </QueryClientProvider>
   );

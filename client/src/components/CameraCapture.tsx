@@ -4,6 +4,7 @@ import { Camera, RotateCcw, AlertCircle, CheckCircle, UserCheck, UserX, RefreshC
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import { apiService } from '@/lib/api';
+import { verifyFaceSuperLenient } from '@/lib/faceVerification';
 
 interface CameraCaptureProps {
   onCapture: (file: File, faceVerified?: boolean) => void;
@@ -52,18 +53,19 @@ export function CameraCapture({
     });
   }, []);
 
-  // Verify face using the instant API
+  // Verify face using frontend face detection
   const verifyFace = useCallback(async (file: File): Promise<boolean> => {
     if (!enableFaceVerification) return true;
     
     try {
       setIsVerifyingFace(true);
-      const base64 = await fileToBase64(file);
-      const result = await apiService.verifyFaceInstant(base64);
+      
+      // Use super lenient face verification
+      const result = await verifyFaceSuperLenient(file);
       
       setFaceVerificationResult({
         verified: result.success,
-        message: result.success ? 'Human face verified' : 'Face verification failed'
+        message: result.message
       });
       
       return result.success;
@@ -71,13 +73,13 @@ export function CameraCapture({
       console.error('Face verification error:', error);
       setFaceVerificationResult({
         verified: false,
-        message: 'Face verification failed'
+        message: 'Face verification failed due to error'
       });
       return false;
     } finally {
       setIsVerifyingFace(false);
     }
-  }, [enableFaceVerification, fileToBase64]);
+  }, [enableFaceVerification]);
 
   // Retry face verification
   const retryFaceVerification = useCallback(async () => {
@@ -101,7 +103,7 @@ export function CameraCapture({
       setIsCameraReady(false);
       setIsLoading(true);
       
-      // Stop any existing stream
+      // Clean up any existing stream
       if (streamRef.current) {
         streamRef.current.getTracks().forEach(track => track.stop());
         streamRef.current = null;
@@ -112,81 +114,48 @@ export function CameraCapture({
         throw new Error('Video element not found');
       }
       
-      console.log('Requesting camera access...');
-      
-      // Request camera with better constraints
+      // Simple camera request - just ask for permission
       const stream = await navigator.mediaDevices.getUserMedia({
         audio: false,
-        video: { 
-          facingMode,
-          width: { ideal: 1280, min: 640 },
-          height: { ideal: 720, min: 480 }
-        }
+        video: true
       });
       
       streamRef.current = stream;
-      video.srcObject = stream;
       
-      // Set video properties
+      // Set up video element properly
+      video.srcObject = stream;
       video.playsInline = true;
       video.muted = true;
       video.autoplay = true;
+      video.style.display = 'block';
+      video.style.objectFit = 'cover';
+      video.style.width = '100%';
+      video.style.height = '100%';
+      video.style.backgroundColor = 'transparent';
       
-      // Wait for video to be ready
-      return new Promise<void>((resolve, reject) => {
-        const handleLoadedMetadata = () => {
-          console.log('Video metadata loaded:', {
-            videoWidth: video.videoWidth,
-            videoHeight: video.videoHeight,
-            readyState: video.readyState
-          });
-          
-          video.style.display = 'block';
-          video.style.backgroundColor = 'transparent';
-          
-          video.play().then(() => {
-            console.log('Video is playing');
-            setIsCameraReady(true);
-            setIsLoading(false);
-            resolve();
-          }).catch((playError) => {
-            console.warn('Video play failed, but continuing:', playError);
-            setIsCameraReady(true);
-            setIsLoading(false);
-            resolve();
-          });
-        };
-        
-        const handleError = (error: any) => {
-          console.error('Video error:', error);
-          reject(error);
-        };
-        
-        video.addEventListener('loadedmetadata', handleLoadedMetadata, { once: true });
-        video.addEventListener('error', handleError, { once: true });
-        
-        // Fallback timeout
-        setTimeout(() => {
-          if (!isCameraReady) {
-            console.log('Camera timeout - marking as ready anyway');
-            setIsCameraReady(true);
-            setIsLoading(false);
-            resolve();
-          }
-        }, 3000);
-      });
+      // Wait for video to actually start playing
+      video.onloadedmetadata = () => {
+        video.play().then(() => {
+          setIsCameraReady(true);
+          setIsLoading(false);
+        }).catch(() => {
+          // Still mark as ready even if play fails
+          setIsCameraReady(true);
+          setIsLoading(false);
+        });
+      };
       
     } catch (err: any) {
       console.error('Camera error:', err);
       setIsLoading(false);
-      const errorMsg = err?.message || 'Failed to access camera. Please allow camera permissions.';
+      const errorMsg = 'Please allow camera access to continue';
       setCameraError(errorMsg);
       onError?.(errorMsg);
       setIsCameraReady(false);
     } finally {
       isStartingRef.current = false;
     }
-  }, [disabled, facingMode, isCameraReady, onError]);
+  }, [disabled, onError]);
 
   const stopCamera = useCallback(() => {
     if (streamRef.current) {
@@ -268,8 +237,8 @@ export function CameraCapture({
           });
         } else {
           toast({
-            title: 'Photo captured',
-            description: 'Photo captured but face verification failed. You can still use the photo.',
+            title: 'Face verification required',
+            description: 'Photo captured but face verification failed. You must retake the photo with a clear human face.',
             variant: 'destructive'
           });
         }
@@ -324,11 +293,18 @@ export function CameraCapture({
       {/* Camera Preview */}
       <div className="relative w-full aspect-video bg-black/5 rounded-lg overflow-hidden border">
         {capturedImage && showPreview ? (
-          <img
-            src={capturedImage}
-            alt="Captured photo"
-            className="w-full h-full object-cover"
-          />
+          <div className="relative w-full h-full">
+            <img
+              src={capturedImage}
+              alt="Captured photo"
+              className="w-full h-full object-cover"
+            />
+            {/* Photo captured indicator */}
+            <div className="absolute top-2 right-2 bg-blue-500 text-white px-2 py-1 rounded text-xs flex items-center gap-1">
+              <CheckCircle className="w-3 h-3" />
+              PHOTO CAPTURED
+            </div>
+          </div>
         ) : (
           <div className="w-full h-full relative">
             <video
@@ -343,13 +319,13 @@ export function CameraCapture({
               }}
             />
             
-            {/* Loading indicator */}
-            {(!isCameraReady || isLoading) && (
+            {/* Loading indicator - only show when actually loading */}
+            {isLoading && (
               <div className="absolute inset-0 flex items-center justify-center bg-black/20">
                 <div className="text-center">
                   <div className="w-8 h-8 border-2 border-white border-t-transparent rounded-full animate-spin mx-auto mb-2" />
                   <p className="text-white text-sm">
-                    {isLoading ? 'Starting camera...' : 'Camera not ready'}
+                    Starting camera...
                   </p>
                 </div>
               </div>
@@ -359,7 +335,14 @@ export function CameraCapture({
             {isCameraReady && streamRef.current && (
               <div className="absolute top-2 right-2 bg-green-500 text-white px-2 py-1 rounded text-xs flex items-center gap-1">
                 <div className="w-2 h-2 bg-white rounded-full animate-pulse" />
-                LIVE
+                CAMERA READY
+              </div>
+            )}
+            
+            {/* Camera preview overlay */}
+            {isCameraReady && streamRef.current && (
+              <div className="absolute bottom-2 left-2 bg-black/50 text-white px-2 py-1 rounded text-xs">
+                📷 Live Preview
               </div>
             )}
           </div>
@@ -391,12 +374,20 @@ export function CameraCapture({
               ) : (
                 <UserX className="w-4 h-4 text-yellow-600" />
               )}
-              <p className={cn(
-                "text-sm",
-                faceVerificationResult.verified ? "text-green-800" : "text-yellow-800"
-              )}>
-                {faceVerificationResult.message}
-              </p>
+              <div>
+                <p className={cn(
+                  "text-sm font-medium",
+                  faceVerificationResult.verified ? "text-green-800" : "text-yellow-800"
+                )}>
+                  {faceVerificationResult.verified ? "✅ Human Face Verified" : "⚠️ Face Verification Failed"}
+                </p>
+                <p className={cn(
+                  "text-xs mt-1",
+                  faceVerificationResult.verified ? "text-green-700" : "text-yellow-700"
+                )}>
+                  {faceVerificationResult.message}
+                </p>
+              </div>
             </div>
             {!faceVerificationResult.verified && (
               <Button
@@ -407,7 +398,7 @@ export function CameraCapture({
                 className="ml-2"
               >
                 <RefreshCw className={cn("w-3 h-3 mr-1", isVerifyingFace && "animate-spin")} />
-                Retry
+                Retry Verification
               </Button>
             )}
           </div>
@@ -419,7 +410,10 @@ export function CameraCapture({
         <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
           <div className="flex items-center gap-2">
             <div className="w-4 h-4 border-2 border-blue-600 border-t-transparent rounded-full animate-spin" />
-            <p className="text-sm text-blue-800">Verifying human face...</p>
+            <div>
+              <p className="text-sm text-blue-800 font-medium">🔍 Verifying Human Face...</p>
+              <p className="text-xs text-blue-700 mt-1">Using OpenCV and AI to detect human presence</p>
+            </div>
           </div>
         </div>
       )}

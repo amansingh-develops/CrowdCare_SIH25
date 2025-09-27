@@ -223,7 +223,7 @@ class Report(Base):
 class RefreshToken(Base):
     __tablename__ = "refresh_tokens"
     
-    id = Column(Integer, primary_key=True, index=True)
+    id = Column(Integer, primary_key=True, index=True, autoincrement=True)
     user_id = Column(String(36), nullable=False, index=True)
     token = Column(String(500), nullable=False, unique=True)
     expires_at = Column(DateTime(timezone=True), nullable=False)

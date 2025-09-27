@@ -97,6 +97,7 @@ const statusColors: Record<string, string> = {
 export default function AdminDashboard() {
   const [reports, setReports] = useState<Report[]>([]);
   const [filteredReports, setFilteredReports] = useState<Report[]>([]);
+  const [resolvedReports, setResolvedReports] = useState<Report[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [urgencyFilter, setUrgencyFilter] = useState<string>('all');
@@ -278,15 +279,23 @@ export default function AdminDashboard() {
       filtered = filtered.filter(report => report.urgency_label === urgencyFilter);
     }
 
-    // Status filter
+    // Status filter - exclude resolved reports from main table
     if (statusFilter !== 'all') {
       filtered = filtered.filter(report => report.status === statusFilter);
+    } else {
+      // Always exclude resolved reports from main table
+      filtered = filtered.filter(report => report.status !== 'resolved');
     }
 
     // Sort by urgency score (highest first)
     filtered.sort((a, b) => b.urgency_score - a.urgency_score);
 
     setFilteredReports(filtered);
+
+    // Separate resolved reports
+    const resolved = reports.filter(report => report.status === 'resolved');
+    resolved.sort((a, b) => new Date(b.resolved_at || b.created_at).getTime() - new Date(a.resolved_at || a.created_at).getTime());
+    setResolvedReports(resolved);
   }, [reports, searchTerm, urgencyFilter, statusFilter]);
 
   const handleViewReport = (report: Report) => {
@@ -423,7 +432,8 @@ export default function AdminDashboard() {
       Low: 0
     };
 
-    reports.forEach(report => {
+    // Only count non-resolved reports in main stats
+    reports.filter(report => report.status !== 'resolved').forEach(report => {
       stats[report.urgency_label]++;
     });
 
@@ -631,7 +641,6 @@ export default function AdminDashboard() {
                   <SelectItem value="reported">Reported</SelectItem>
                   <SelectItem value="acknowledged">Acknowledged</SelectItem>
                   <SelectItem value="in_progress">In Progress</SelectItem>
-                  <SelectItem value="resolved">Resolved</SelectItem>
                   <SelectItem value="deleted">Deleted</SelectItem>
                 </SelectContent>
               </Select>
@@ -654,10 +663,10 @@ export default function AdminDashboard() {
           <CardHeader>
             <CardTitle className="flex items-center">
               <BarChart3 className="w-5 h-5 mr-2" />
-              Community Reports ({filteredReports.length})
+              Active Community Reports ({filteredReports.length})
             </CardTitle>
             <CardDescription>
-              Reports sorted by AI-powered urgency ranking
+              Active reports sorted by AI-powered urgency ranking (resolved reports shown separately below)
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -807,6 +816,108 @@ export default function AdminDashboard() {
             </div>
           </CardContent>
         </Card>
+
+        {/* Resolved Reports Section */}
+        {resolvedReports.length > 0 && (
+          <Card className="mt-8">
+            <CardHeader>
+              <CardTitle className="flex items-center">
+                <CheckCircle className="w-5 h-5 mr-2 text-green-600" />
+                Resolved Reports ({resolvedReports.length})
+              </CardTitle>
+              <CardDescription>
+                Recently resolved issues - sorted by resolution date
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Urgency</TableHead>
+                      <TableHead>Title</TableHead>
+                      <TableHead>Category</TableHead>
+                      <TableHead>Reporter</TableHead>
+                      <TableHead>Resolved Date</TableHead>
+                      <TableHead>Days to Resolve</TableHead>
+                      <TableHead>Actions</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {resolvedReports.map((report) => (
+                      <TableRow key={report.id} className="opacity-75">
+                        <TableCell>
+                          <div className="flex items-center space-x-2">
+                            <Badge className={urgencyColors[report.urgency_label]}>
+                              {report.urgency_label}
+                            </Badge>
+                            <div className="text-xs text-gray-500">
+                              {report.urgency_score}/100
+                            </div>
+                          </div>
+                          <Progress 
+                            value={report.urgency_score} 
+                            className="w-16 h-1 mt-1"
+                          />
+                        </TableCell>
+                        <TableCell>
+                          <div className="font-medium text-gray-600">
+                            {report.title}
+                          </div>
+                          <div className="text-sm truncate max-w-xs text-gray-500">
+                            {report.description ? report.description.split('\n')[0] + '...' : 'No description available'}
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant="outline">
+                            {report.category}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>
+                          <span className="text-gray-600">
+                            {report.reporter_name || 'Unknown'}
+                          </span>
+                        </TableCell>
+                        <TableCell>
+                          <div className="text-sm">
+                            <span className="text-gray-600">
+                              {formatReportTime(report.resolved_at || report.created_at).date}
+                            </span>
+                          </div>
+                          <div className="text-xs text-gray-500">
+                            {formatReportTime(report.resolved_at || report.created_at).time}
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <div className="text-sm font-bold text-green-600">
+                            {report.resolved_at ? 
+                              Math.ceil((new Date(report.resolved_at).getTime() - new Date(report.created_at).getTime()) / (1000 * 60 * 60 * 24)) + ' days' :
+                              'N/A'
+                            }
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex space-x-2">
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => handleViewReport(report)}
+                            >
+                              <Eye className="w-4 h-4" />
+                            </Button>
+                            <Badge className="bg-green-100 text-green-800">
+                              Resolved
+                            </Badge>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            </CardContent>
+          </Card>
+        )}
           </>
         )}
 

@@ -289,8 +289,13 @@ export function AdminPanel() {
   };
 
   const filteredIssues = issues.filter((issue: IssueWithDetails) =>
-    issue.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    issue.description.toLowerCase().includes(searchTerm.toLowerCase())
+    (issue.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    issue.description.toLowerCase().includes(searchTerm.toLowerCase())) &&
+    issue.status !== 'resolved' // Exclude resolved issues from main table
+  );
+
+  const resolvedIssues = issues.filter((issue: IssueWithDetails) => 
+    issue.status === 'resolved'
   );
 
   const totalPages = Math.ceil(filteredIssues.length / itemsPerPage);
@@ -513,9 +518,9 @@ export function AdminPanel() {
               transition={{ duration: 0.6, delay: 0.7 }}
             >
               <div>
-                <CardTitle className="text-2xl font-bold text-gray-800">Issue Management</CardTitle>
+                <CardTitle className="text-2xl font-bold text-gray-800">Active Issue Management</CardTitle>
                 <p className="text-sm text-gray-600 mt-2">
-                  Issues ranked by: Priority (Urgent &gt; High &gt; Medium &gt; Low) → Upvotes → Date Created
+                  Active issues ranked by: Priority (Urgent &gt; High &gt; Medium &gt; Low) → Upvotes → Date Created (resolved issues shown separately below)
                 </p>
               </div>
               <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-4 w-full lg:w-auto">
@@ -865,6 +870,137 @@ export function AdminPanel() {
         </CardContent>
       </Card>
       </motion.div>
+
+      {/* Resolved Issues Section */}
+      {resolvedIssues.length > 0 && (
+        <motion.div
+          variants={cardVariants}
+          whileHover="hover"
+        >
+          <Card className="shadow-xl overflow-hidden bg-white/80 backdrop-blur-sm border-gray-200">
+            <CardHeader className="border-b border-gray-200 bg-gradient-to-r from-green-50 to-green-100">
+              <motion.div 
+                className="flex flex-col lg:flex-row lg:justify-between lg:items-center gap-6"
+                initial={{ opacity: 0, y: -20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.6, delay: 0.7 }}
+              >
+                <div>
+                  <CardTitle className="text-2xl font-bold text-gray-800 flex items-center">
+                    <CheckCircle className="w-6 h-6 mr-2 text-green-600" />
+                    Resolved Issues ({resolvedIssues.length})
+                  </CardTitle>
+                  <p className="text-sm text-gray-600 mt-2">
+                    Recently resolved issues - sorted by resolution date
+                  </p>
+                </div>
+              </motion.div>
+            </CardHeader>
+            <CardContent className="p-0">
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader className="bg-gradient-to-r from-green-50 to-green-100">
+                    <TableRow>
+                      <TableHead className="w-12 font-semibold text-gray-800">#</TableHead>
+                      <TableHead className="font-semibold text-gray-800">Issue</TableHead>
+                      <TableHead className="font-semibold text-gray-800">Category</TableHead>
+                      <TableHead className="font-semibold text-gray-800">Location</TableHead>
+                      <TableHead className="font-semibold text-gray-800">Priority</TableHead>
+                      <TableHead className="font-semibold text-gray-800">Resolved Date</TableHead>
+                      <TableHead className="font-semibold text-gray-800">Actions</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    <AnimatePresence>
+                      {resolvedIssues.map((issue: IssueWithDetails, index: number) => (
+                        <motion.tr 
+                          key={issue.id} 
+                          className="hover:bg-green-50 transition-colors duration-200 border-b border-gray-100 opacity-75" 
+                          data-testid={`row-resolved-issue-${issue.id}`}
+                          initial={{ opacity: 0, y: 20 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          exit={{ opacity: 0, y: -20 }}
+                          transition={{ duration: 0.3, delay: index * 0.05 }}
+                        >
+                          <TableCell className="text-center font-bold py-4">
+                            <Badge variant="secondary" className="font-mono bg-gradient-to-r from-green-100 to-green-200 text-green-800 border-green-300">
+                              #{index + 1}
+                            </Badge>
+                          </TableCell>
+                          <TableCell className="py-4">
+                            <div className="flex items-center space-x-3">
+                              {issue.images && issue.images.length > 0 ? (
+                                <motion.img
+                                  src={`/uploads/${issue.images[0].filePath}`}
+                                  alt="Issue"
+                                  className="w-12 h-8 object-cover rounded shadow-sm"
+                                  loading="lazy"
+                                  whileHover={{ scale: 1.1 }}
+                                  transition={{ duration: 0.2 }}
+                                  onError={(e) => {
+                                    e.currentTarget.style.display = 'none';
+                                  }}
+                                />
+                              ) : (
+                                <div className="w-12 h-8 bg-gray-100 rounded flex items-center justify-center border border-gray-200">
+                                  <span className="text-xs text-gray-500">No image</span>
+                                </div>
+                              )}
+                              <div>
+                                <div className="font-semibold text-gray-600">
+                                  {issue.title}
+                                </div>
+                                <div className="text-sm text-gray-500">
+                                  Resolved {formatISTDateTime(issue.updatedAt || issue.createdAt)}
+                                </div>
+                              </div>
+                            </div>
+                          </TableCell>
+                          <TableCell className="text-sm py-4">
+                            <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
+                              {ISSUE_CATEGORIES.find(c => c.value === issue.category)?.label}
+                            </Badge>
+                          </TableCell>
+                          <TableCell className="text-sm py-4 text-gray-600">
+                            {issue.location}
+                          </TableCell>
+                          <TableCell className="py-4">
+                            <StatusBadge priority={issue.priority} />
+                          </TableCell>
+                          <TableCell className="text-sm py-4 text-gray-600">
+                            {formatISTDateTime(issue.updatedAt || issue.createdAt)}
+                          </TableCell>
+                          <TableCell className="py-4">
+                            <div className="flex items-center space-x-2">
+                              <motion.div
+                                whileHover={{ scale: 1.1 }}
+                                whileTap={{ scale: 0.9 }}
+                              >
+                                <Button 
+                                  variant="ghost" 
+                                  size="sm"
+                                  onClick={() => handleViewIssue(issue)}
+                                  disabled={isDialogLoading}
+                                  className="hover:bg-green-100 hover:text-green-700"
+                                >
+                                  <Eye className="w-4 h-4" />
+                                </Button>
+                              </motion.div>
+                              <Badge variant="secondary" className="bg-green-100 text-green-800 border-green-200">
+                                Resolved
+                              </Badge>
+                            </div>
+                          </TableCell>
+                        </motion.tr>
+                      ))}
+                    </AnimatePresence>
+                  </TableBody>
+                </Table>
+              </div>
+            </CardContent>
+          </Card>
+        </motion.div>
+      )}
 
       {/* Enhanced Analytics Section */}
       <motion.div 

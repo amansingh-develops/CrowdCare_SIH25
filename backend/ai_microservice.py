@@ -9,12 +9,30 @@ from typing import Dict, Any, Optional
 import logging
 from datetime import datetime
 import uvicorn
+import os
+import openai
+from openai import OpenAI
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 app = FastAPI(title="CrowdCare AI Microservice", version="1.0.0")
+
+# Initialize OpenAI client
+openai_available = False
+openai_client = None
+try:
+    openai_api_key = os.getenv("OPENAI_API_KEY")
+    if openai_api_key and openai_api_key != "your-openai-api-key-here":
+        openai_client = OpenAI(api_key=openai_api_key)
+        openai_available = True
+        logger.info("OpenAI client initialized successfully in microservice")
+    else:
+        logger.warning("OpenAI API key not configured in microservice, will use fallback generation")
+except Exception as e:
+    logger.warning(f"OpenAI initialization failed in microservice: {e}")
+    openai_available = False
 
 class ClassificationRequest(BaseModel):
     report_content: Dict[str, Any]
@@ -142,8 +160,20 @@ async def classify_urgency(request: ClassificationRequest):
 async def generate_summary(request: SummaryRequest):
     """
     Generate AI-powered summary for reports
+    First tries OpenAI for realistic generation, then falls back to local generation
     """
     try:
+        # Try OpenAI first for realistic generation
+        if openai_available:
+            try:
+                openai_response = await _generate_openai_summary(request)
+                if openai_response:
+                    logger.info("Successfully generated AI summary using OpenAI in microservice")
+                    return openai_response
+            except Exception as e:
+                logger.warning(f"OpenAI summary generation failed in microservice: {e}, falling back to local generation")
+        
+        # Fallback to local generation
         # Generate title based on category and severity
         title = _generate_title(request.category, request.mcq_responses.get("severity", "Medium"))
         
@@ -162,6 +192,105 @@ async def generate_summary(request: SummaryRequest):
     except Exception as e:
         logger.error(f"Error in summary generation: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Summary generation failed: {str(e)}")
+
+async def _generate_openai_summary(request: SummaryRequest) -> Optional[SummaryResponse]:
+    """
+    Generate realistic AI summary using OpenAI GPT-4 in microservice
+    """
+    try:
+        # Parse reporting time
+        try:
+            report_datetime = datetime.fromisoformat(request.reporting_time.replace('Z', '+00:00'))
+            formatted_date = report_datetime.strftime("%B %d, %Y")
+            formatted_time = report_datetime.strftime("%I:%M %p")
+        except:
+            formatted_date = "Unknown Date"
+            formatted_time = "Unknown Time"
+        
+        # Extract key information
+        severity = request.mcq_responses.get("severity", "Medium")
+        duration = request.mcq_responses.get("duration", "Unknown duration")
+        affected_area = request.mcq_responses.get("affectedArea", "Local area")
+        
+        # Create comprehensive prompt for OpenAI
+        system_prompt = """You are an expert municipal infrastructure analyst writing professional incident reports for a city's citizen reporting system. 
+
+Your task is to generate a realistic, detailed, and professional infrastructure issue report that sounds like it was written by a knowledgeable municipal worker or engineer.
+
+Guidelines:
+1. Write in a professional, technical tone appropriate for municipal documentation
+2. Include specific technical details and assessments
+3. Use proper municipal terminology and standards
+4. Structure the report with clear sections
+5. Make it sound realistic and detailed, not generic
+6. Include specific recommendations based on the issue type
+7. Consider the severity, duration, and affected area in your assessment
+8. Write as if you're a trained professional who has seen similar issues before
+
+The report should be comprehensive but concise, professional but accessible."""
+
+        user_prompt = f"""Generate a professional municipal infrastructure report for the following incident:
+
+INCIDENT DETAILS:
+- Issue Category: {request.category}
+- Severity Level: {severity}
+- Duration: {duration}
+- Area Affected: {affected_area}
+- Report Date: {formatted_date}
+- Report Time: {formatted_time}
+- Location: {request.latitude:.6f}°N, {request.longitude:.6f}°E
+- Reporter: {request.reporter_name or "Citizen"}
+- Contact: {request.reporter_email or "Not provided"}
+
+Please generate:
+1. A professional, descriptive title (max 80 characters)
+2. A comprehensive, realistic report description that includes:
+   - Detailed issue assessment
+   - Technical specifications and observations
+   - Impact analysis (safety, traffic, environmental)
+   - Specific recommended actions
+   - Professional recommendations for resolution
+3. Relevant tags for categorization
+
+Format the response as JSON with these exact fields:
+{{
+  "title": "Professional descriptive title",
+  "description": "Comprehensive professional report description",
+  "tags": ["tag1", "tag2", "tag3", "tag4", "tag5"]
+}}
+
+Make the report sound like it was written by an experienced municipal engineer or infrastructure specialist."""
+
+        # Call OpenAI API
+        response = openai_client.chat.completions.create(
+            model="gpt-4",
+            messages=[
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": user_prompt}
+            ],
+            max_tokens=1500,
+            temperature=0.7,
+            response_format={"type": "json_object"}
+        )
+        
+        # Parse response
+        result = response.choices[0].message.content
+        if not result:
+            return None
+            
+        import json
+        parsed_result = json.loads(result)
+        
+        # Validate and return response
+        return SummaryResponse(
+            title=parsed_result.get("title", f"{request.category} Infrastructure Issue Report"),
+            description=parsed_result.get("description", ""),
+            tags=parsed_result.get("tags", [])
+        )
+        
+    except Exception as e:
+        logger.error(f"OpenAI summary generation error in microservice: {e}")
+        return None
 
 def _analyze_category_urgency(category: str) -> int:
     """Analyze category-based urgency (0-100)"""

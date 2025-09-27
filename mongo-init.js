@@ -47,3 +47,4 @@ db.departments.insertMany([
 ]);
 
 print('✅ MongoDB database initialized successfully!');
+

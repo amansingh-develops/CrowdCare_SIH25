@@ -23,9 +23,9 @@ export default function LandingPage() {
     // Add a small delay for animation before navigation
     setTimeout(() => {
       if (role === 'citizen') {
-        setLocation('/citizen/dashboard');
+        setLocation('/citizen/auth');
       } else {
-        setLocation('/admin/dashboard');
+        setLocation('/admin/auth');
       }
     }, 300);
   };

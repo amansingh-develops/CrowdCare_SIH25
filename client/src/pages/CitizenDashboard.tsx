@@ -419,11 +419,52 @@ export default function CitizenDashboard() {
       // Get current user data
       const currentUser = getCurrentUser();
       
-      // Simulate AI API call
-      await new Promise(resolve => setTimeout(resolve, 2000));
+      // Call the actual AI API endpoint
+      const API_BASE_URL = process.env.NODE_ENV === 'production' 
+        ? '/api' 
+        : 'http://localhost:8000';
       
-      // Mock AI response based on category and MCQs with actual user data
-      const mockResponse: AIResponse = {
+      const requestBody = {
+        category: formData.category,
+        reporting_time: new Date().toISOString(),
+        latitude: locationData.latitude,
+        longitude: locationData.longitude,
+        mcq_responses: formData.mcqData,
+        reporter_name: currentUser?.full_name,
+        reporter_email: currentUser?.email
+      };
+
+      console.log('AI API Request:', `${API_BASE_URL}/api/ai/generate-summary`, requestBody);
+
+      const response = await fetch(`${API_BASE_URL}/api/ai/generate-summary`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(requestBody)
+      });
+
+      console.log('AI API Response Status:', response.status);
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('AI API Error Response:', errorText);
+        throw new Error(`AI API error: ${response.status} - ${errorText}`);
+      }
+
+      const aiResponse: AIResponse = await response.json();
+      setAiResponse(aiResponse);
+      
+      toast({
+        title: 'AI Description Generated',
+        description: 'AI has analyzed your report and generated a realistic, professional description.',
+      });
+    } catch (error) {
+      console.error('AI generation error:', error);
+      
+      // Fallback to mock response if API fails
+      const currentUser = getCurrentUser();
+      const fallbackResponse: AIResponse = {
         title: `${formData.category} Infrastructure Issue Report`,
         description: `INFRASTRUCTURE ISSUE REPORT
 
@@ -467,16 +508,11 @@ This report has been automatically generated and requires immediate attention fr
         tags: [formData.category.toLowerCase().replace(' ', '_'), formData.mcqData.severity?.toLowerCase() || 'medium', 'infrastructure', 'citizen_report', 'gps_verified']
       };
 
-      setAiResponse(mockResponse);
+      setAiResponse(fallbackResponse);
       toast({
-        title: 'AI Description Generated',
-        description: 'AI has analyzed your report and generated an optimized description.',
-      });
-    } catch (error) {
-      toast({
-        title: 'AI Generation Failed',
-        description: 'Could not generate AI description. Please try again.',
-        variant: 'destructive'
+        title: 'AI Description Generated (Fallback)',
+        description: 'AI service unavailable, using standard template. Your report is still valid.',
+        variant: 'default'
       });
     } finally {
       setIsGeneratingAI(false);

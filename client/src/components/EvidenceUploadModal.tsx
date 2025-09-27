@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { apiService } from "@/lib/api";
+import { verifyFaceSuperLenient } from "@/lib/faceVerification";
 import { 
   Upload, 
   MapPin, 
@@ -248,146 +249,99 @@ export function EvidenceUploadModal({
 
   const startCamera = useCallback(async () => {
     try {
-      if (isStartingRef.current) {
-        console.log('Camera start already in progress, skipping...');
-        return;
-      }
-      if (isCameraReady) {
-        console.log('Camera already ready, skipping start...');
-        return;
-      }
+      if (isStartingRef.current) return;
       
-      console.log('Starting camera...');
       isStartingRef.current = true;
       setCameraError(null);
       setIsCameraReady(false);
       setIsCameraLoading(true);
       
-      // Stop any previous stream
+      // Clean up any existing stream
       if (streamRef.current) {
-        try { 
-          streamRef.current.getTracks().forEach(t => t.stop()); 
-        } catch {}
+        streamRef.current.getTracks().forEach(track => track.stop());
         streamRef.current = null;
       }
       
-      let video = videoRef.current;
+      const video = videoRef.current;
       if (!video) {
-        console.log('Video element not found, waiting for it to be available...');
-        // Wait a bit for the video element to be available
-        await new Promise(resolve => setTimeout(resolve, 100));
-        video = videoRef.current;
-        if (!video) {
-          console.error('Video element still not found after retry');
-          throw new Error('Video element not found after retry');
-        }
+        throw new Error('Video element not found');
       }
       
-      // Clear any existing video source
-      video.srcObject = null;
-      video.load(); // Reset the video element
-      
-      // Small delay to ensure video element is properly reset
-      await new Promise(resolve => setTimeout(resolve, 50));
-      
-      console.log('Video element found:', video);
-      console.log('Video element in DOM:', document.contains(video));
-      
-      console.log('Requesting camera access...');
-      console.log('Video element:', video);
-      console.log('Video element ready state:', video.readyState);
-      
-      // Enhanced camera request with better constraints
+      // Simple camera request - just ask for permission
       const stream = await navigator.mediaDevices.getUserMedia({
         audio: false,
-        video: { 
-          facingMode: 'user',
-          width: { ideal: 640, min: 320 },
-          height: { ideal: 480, min: 240 }
-        }
+        video: true
       });
       
       streamRef.current = stream;
-      console.log('Camera stream obtained:', stream);
-      console.log('Stream tracks:', stream.getTracks());
       
-      // Set the stream
+      // Set up video element properly
       video.srcObject = stream;
-      console.log('Video srcObject set:', video.srcObject);
-      
-      // Set video properties
       video.playsInline = true;
       video.muted = true;
       video.autoplay = true;
-      console.log('Video properties set:', {
-        playsInline: video.playsInline,
-        muted: video.muted,
-        autoplay: video.autoplay
-      });
+      video.style.display = 'block';
+      video.style.objectFit = 'cover';
+      video.style.width = '100%';
+      video.style.height = '100%';
+      video.style.backgroundColor = 'transparent';
       
-      // Wait for video to load and be ready
-      return new Promise<void>((resolve, reject) => {
-        const handleLoadedMetadata = () => {
-          console.log('Video metadata loaded:', {
-            videoWidth: video.videoWidth,
-            videoHeight: video.videoHeight,
-            readyState: video.readyState
-          });
-          
-          // Ensure video is visible and playing
-          video.style.display = 'block';
-          video.style.backgroundColor = 'transparent';
-          
-          // Try to play the video
-          video.play().then(() => {
-            console.log('Video is playing');
-            setIsCameraReady(true);
-            setIsCameraLoading(false);
-            resolve();
-          }).catch((playError) => {
-            console.warn('Video play failed, but continuing:', playError);
-            setIsCameraReady(true);
-            setIsCameraLoading(false);
-            resolve();
-          });
-        };
-        
-        const handleError = (error: any) => {
-          console.error('Video error:', error);
-          reject(error);
-        };
-        
-        // Add event listeners
-        video.addEventListener('loadedmetadata', handleLoadedMetadata, { once: true });
-        video.addEventListener('error', handleError, { once: true });
-        
-        // Fallback timeout
-        setTimeout(() => {
-          console.log('Camera timeout - marking as ready anyway');
+      // Wait for video to actually start playing
+      video.onloadedmetadata = () => {
+        video.play().then(() => {
           setIsCameraReady(true);
           setIsCameraLoading(false);
-          resolve();
-        }, 3000);
-      });
+        }).catch(() => {
+          // Still mark as ready even if play fails
+          setIsCameraReady(true);
+          setIsCameraLoading(false);
+        });
+      };
       
     } catch (err: any) {
       console.error('Camera error:', err);
       setIsCameraLoading(false);
-      setCameraError(err?.message || 'Failed to access camera. Please allow camera permissions.');
+      setCameraError('Please allow camera access to continue');
       setIsCameraReady(false);
     } finally {
       isStartingRef.current = false;
     }
-  }, []); // Remove isCameraReady from dependencies to prevent loop
+  }, []);
 
   // Auto-start camera when modal opens
   useEffect(() => {
     if (isOpen) {
       console.log('Modal opened, starting camera...');
-      startCamera();
+      // Add a small delay to ensure modal is fully rendered
+      const timer = setTimeout(() => {
+        startCamera();
+      }, 300);
+      
+      return () => clearTimeout(timer);
     }
     // Cleanup handled in handleClose
   }, [isOpen]); // Remove startCamera from dependencies to prevent loop
+
+  // Cleanup on component unmount
+  useEffect(() => {
+    return () => {
+      // Cleanup camera stream on unmount
+      if (streamRef.current) {
+        try {
+          streamRef.current.getTracks().forEach(track => {
+            track.stop();
+            console.log('Stopped track on unmount:', track.kind);
+          });
+        } catch (error) {
+          console.warn('Error stopping tracks on unmount:', error);
+        }
+      }
+      // Clean up selfie URL
+      if (selfiePreviewUrl) {
+        URL.revokeObjectURL(selfiePreviewUrl);
+      }
+    };
+  }, [selfiePreviewUrl]);
 
   const captureFromVideo = async (): Promise<Blob | null> => {
     try {
@@ -455,16 +409,17 @@ export function EvidenceUploadModal({
     });
   }, []);
 
-  // Verify face using the instant API
+  // Verify face using frontend face detection
   const verifyFaceInstant = useCallback(async (blob: Blob): Promise<boolean> => {
     try {
       setIsVerifyingFace(true);
-      const base64 = await blobToBase64(blob);
-      const result = await apiService.verifyFaceInstant(base64);
+      
+      // Use super lenient face verification
+      const result = await verifyFaceSuperLenient(blob);
       
       setFaceVerificationResult({
         verified: result.success,
-        message: result.success ? 'Human face verified' : 'Face verification failed'
+        message: result.message
       });
       
       return result.success;
@@ -472,13 +427,13 @@ export function EvidenceUploadModal({
       console.error('Face verification error:', error);
       setFaceVerificationResult({
         verified: false,
-        message: 'Face verification failed'
+        message: 'Face verification failed due to error'
       });
       return false;
     } finally {
       setIsVerifyingFace(false);
     }
-  }, [blobToBase64]);
+  }, []);
 
   // Retry face verification
   const retryFaceVerification = useCallback(async () => {
@@ -605,13 +560,20 @@ export function EvidenceUploadModal({
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
     }
-    // Stop camera stream and cleanup
+    // Stop camera stream and cleanup completely
     try {
       if (streamRef.current) {
-        streamRef.current.getTracks().forEach(t => t.stop());
+        streamRef.current.getTracks().forEach(track => {
+          track.stop();
+          console.log('Stopped track on modal close:', track.kind);
+        });
         streamRef.current = null;
       }
-    } catch {}
+      // Reset the starting flag
+      isStartingRef.current = false;
+    } catch (error) {
+      console.warn('Error cleaning up camera stream:', error);
+    }
     if (selfiePreviewUrl) {
       URL.revokeObjectURL(selfiePreviewUrl);
     }
@@ -663,9 +625,8 @@ export function EvidenceUploadModal({
   ) : null;
 
   const isWithinRadius = distance !== null && distance <= 30;
-  // Require evidence file upload, GPS verification, and admin photo capture before enabling submission
-  // Face verification is handled by the backend during resolution
-  const canSubmit = Boolean(selectedFile) && !fileError && Boolean(gpsInfo?.hasGps) && isWithinRadius && selfieCaptured;
+  // Require evidence file upload, GPS verification, admin photo capture, AND face verification before enabling submission
+  const canSubmit = Boolean(selectedFile) && !fileError && Boolean(gpsInfo?.hasGps) && isWithinRadius && selfieCaptured && faceVerificationResult?.verified;
   
   // Enhanced validation logging
   console.log('Submission validation:', {
@@ -675,6 +636,7 @@ export function EvidenceUploadModal({
     isWithinRadius,
     distance,
     adminPhotoCaptured: selfieCaptured,
+    faceVerified: faceVerificationResult?.verified,
     canSubmit
   });
 
@@ -856,43 +818,50 @@ export function EvidenceUploadModal({
                           minHeight: '200px',
                           display: isCameraReady ? 'block' : 'none'
                         }}
-                        onClick={() => {
-                          console.log('Video clicked, current state:', {
-                            isCameraReady,
-                            isCameraLoading,
-                            hasStream: !!streamRef.current,
-                            videoReadyState: videoRef.current?.readyState,
-                            videoSrcObject: !!videoRef.current?.srcObject,
-                            videoWidth: videoRef.current?.videoWidth,
-                            videoHeight: videoRef.current?.videoHeight
-                          });
-                        }}
                       />
-                      {/* Buffering/Loading indicator */}
-                      {(!isCameraReady || isCameraLoading) && (
-                        <div className="absolute inset-0 flex items-center justify-center bg-black/20">
+                      {/* Camera loading indicator - only show when actually loading */}
+                      {isCameraLoading && (
+                        <div className="absolute inset-0 flex items-center justify-center bg-black/30">
                           <div className="text-center">
                             <div className="w-8 h-8 border-2 border-white border-t-transparent rounded-full animate-spin mx-auto mb-2" />
-                            <p className="text-white text-sm">
-                              {isCameraLoading ? 'Starting camera...' : 'Camera not ready'}
+                            <p className="text-white text-sm font-medium">
+                              Initializing camera...
+                            </p>
+                            <p className="text-white text-xs mt-1 opacity-75">
+                              Please allow camera permissions
                             </p>
                           </div>
                         </div>
                       )}
                       
-                      {/* Camera status indicator */}
+                      {/* Camera ready indicator */}
                       {isCameraReady && streamRef.current && (
-                        <div className="absolute top-2 right-2 bg-green-500 text-white px-2 py-1 rounded text-xs">
-                          ● LIVE
+                        <div className="absolute top-2 right-2 bg-green-500 text-white px-2 py-1 rounded text-xs flex items-center gap-1">
+                          <div className="w-2 h-2 bg-white rounded-full animate-pulse" />
+                          CAMERA READY
+                        </div>
+                      )}
+                      
+                      {/* Camera preview overlay */}
+                      {isCameraReady && streamRef.current && (
+                        <div className="absolute bottom-2 left-2 bg-black/50 text-white px-2 py-1 rounded text-xs">
+                          📷 Live Preview
                         </div>
                       )}
                     </div>
                   ) : (
-                    <img
-                      src={selfiePreviewUrl || ''}
-                      alt="Selfie preview"
-                      className="w-full h-full object-cover"
-                    />
+                    <div className="relative w-full h-full">
+                      <img
+                        src={selfiePreviewUrl || ''}
+                        alt="Captured photo"
+                        className="w-full h-full object-cover"
+                      />
+                      {/* Photo captured indicator */}
+                      <div className="absolute top-2 right-2 bg-blue-500 text-white px-2 py-1 rounded text-xs flex items-center gap-1">
+                        <CheckCircle className="w-3 h-3" />
+                        PHOTO CAPTURED
+                      </div>
+                    </div>
                   )}
                   {/* Photo capture overlay */}
                   {showLookOverlay && (
@@ -913,8 +882,15 @@ export function EvidenceUploadModal({
                           
                           // Ensure camera is ready
                           if (!isCameraReady || !streamRef.current) {
+                            console.log('Camera not ready, restarting...');
                             await startCamera();
-                            await new Promise((r) => setTimeout(r, 1500));
+                            await new Promise((r) => setTimeout(r, 2000));
+                          }
+                          
+                          // Double-check camera is ready before capture
+                          if (!isCameraReady || !streamRef.current) {
+                            setCameraError('Camera is not ready. Please try again.');
+                            return;
                           }
                           
                           const blob = await captureFromVideo();
@@ -927,18 +903,18 @@ export function EvidenceUploadModal({
                           const url = URL.createObjectURL(blob);
                           setSelfiePreviewUrl(url);
                           
-                          // Verify face instantly after capture
+                          // Verify face instantly after capture - MANDATORY
                           const faceVerified = await verifyFaceInstant(blob);
                           
                           if (faceVerified) {
                             toast({
                               title: 'Photo captured & verified',
-                              description: 'Photo captured and human face verified successfully!'
+                              description: 'Photo captured and human face verified successfully! Admin verification complete.'
                             });
                           } else {
                             toast({
-                              title: 'Photo captured',
-                              description: 'Photo captured but face verification failed. You can still use the photo.',
+                              title: 'Face verification required',
+                              description: 'Photo captured but face verification failed. You must retake the photo with a clear human face.',
                               variant: 'destructive'
                             });
                           }
@@ -964,11 +940,16 @@ export function EvidenceUploadModal({
                           setSelfieCaptured(false);
                           setFaceVerificationResult(null);
                           
-                          // Force stop current stream
+                          // Force stop current stream completely
                           if (streamRef.current) {
                             try { 
-                              streamRef.current.getTracks().forEach(t => t.stop()); 
-                            } catch {}
+                              streamRef.current.getTracks().forEach(track => {
+                                track.stop();
+                                console.log('Stopped track for retake:', track.kind);
+                              }); 
+                            } catch (error) {
+                              console.warn('Error stopping tracks for retake:', error);
+                            }
                             streamRef.current = null;
                           }
                           
@@ -978,8 +959,8 @@ export function EvidenceUploadModal({
                           setIsCameraLoading(true);
                           isStartingRef.current = false; // Reset the starting flag
                           
-                          // Small delay to ensure cleanup is complete
-                          await new Promise(resolve => setTimeout(resolve, 100));
+                          // Wait longer for cleanup to complete
+                          await new Promise(resolve => setTimeout(resolve, 300));
                           
                           // Restart camera
                           await startCamera();
@@ -1015,12 +996,20 @@ export function EvidenceUploadModal({
                       ) : (
                         <AlertCircle className="w-4 h-4 text-yellow-600" />
                       )}
-                      <p className={cn(
-                        "text-sm",
-                        faceVerificationResult.verified ? "text-green-800" : "text-yellow-800"
-                      )}>
-                        {faceVerificationResult.message}
-                      </p>
+                      <div>
+                        <p className={cn(
+                          "text-sm font-medium",
+                          faceVerificationResult.verified ? "text-green-800" : "text-yellow-800"
+                        )}>
+                          {faceVerificationResult.verified ? "✅ Human Face Verified" : "⚠️ Face Verification Failed"}
+                        </p>
+                        <p className={cn(
+                          "text-xs mt-1",
+                          faceVerificationResult.verified ? "text-green-700" : "text-yellow-700"
+                        )}>
+                          {faceVerificationResult.message}
+                        </p>
+                      </div>
                     </div>
                     {!faceVerificationResult.verified && (
                       <Button
@@ -1031,7 +1020,7 @@ export function EvidenceUploadModal({
                         className="ml-2"
                       >
                         <RefreshCw className={cn("w-3 h-3 mr-1", isVerifyingFace && "animate-spin")} />
-                        Retry
+                        Retry Verification
                       </Button>
                     )}
                   </div>
@@ -1043,7 +1032,10 @@ export function EvidenceUploadModal({
                 <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mt-3">
                   <div className="flex items-center gap-2">
                     <div className="w-4 h-4 border-2 border-blue-600 border-t-transparent rounded-full animate-spin" />
-                    <p className="text-sm text-blue-800">Verifying human face...</p>
+                    <div>
+                      <p className="text-sm text-blue-800 font-medium">🔍 Verifying Human Face...</p>
+                      <p className="text-xs text-blue-700 mt-1">Using OpenCV and AI to detect human presence</p>
+                    </div>
                   </div>
                 </div>
               )}
@@ -1065,18 +1057,26 @@ export function EvidenceUploadModal({
                 </span>
               </div>
               <div className="flex items-center gap-2">
-                {selfieCaptured ? (
+                {selfieCaptured && faceVerificationResult?.verified ? (
                   <CheckCircle className="w-4 h-4 text-green-600" />
+                ) : selfieCaptured ? (
+                  <AlertCircle className="w-4 h-4 text-yellow-500" />
                 ) : (
                   <AlertCircle className="w-4 h-4 text-red-600" />
                 )}
-                <span className={`text-sm font-medium ${selfieCaptured ? 'text-green-600' : 'text-red-600'}`}>
-                  Admin Live Photo Capture
+                <span className={`text-sm font-medium ${
+                  selfieCaptured && faceVerificationResult?.verified 
+                    ? 'text-green-600' 
+                    : selfieCaptured 
+                    ? 'text-yellow-600' 
+                    : 'text-red-600'
+                }`}>
+                  Admin Live Photo Capture {selfieCaptured && !faceVerificationResult?.verified ? "(Verification Required)" : ""}
                 </span>
               </div>
               {!canSubmit && (
                 <p className="text-xs text-muted-foreground mt-2">
-                  Both requirements must be completed before you can resolve this report. Face verification will be handled automatically by the system.
+                  Both requirements must be completed before you can resolve this report. Face verification is mandatory and must pass for admin photo capture.
                 </p>
               )}
             </div>

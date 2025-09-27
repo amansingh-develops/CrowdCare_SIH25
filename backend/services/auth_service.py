@@ -7,14 +7,15 @@ Handles JWT tokens, password hashing, and user authentication
 from jose import jwt, JWTError, ExpiredSignatureError
 import bcrypt
 import secrets
+import uuid
 from datetime import datetime, timedelta
-from typing import Optional, Dict, Any
+from typing import Optional, Dict, Any, Union
 from sqlalchemy.orm import Session
 from sqlalchemy import and_
 import logging
 
 from models import User, RefreshToken
-from schemas import UserRegister, UserLogin, TokenResponse, UserResponse, UserProfileUpdate
+from schemas import UserRegister, CitizenRegister, AdminRegister, UserLogin, TokenResponse, UserResponse, UserProfileUpdate
 from database import get_db
 
 logger = logging.getLogger(__name__)
@@ -74,7 +75,7 @@ class AuthService:
             logger.warning("Invalid token")
             return None
     
-    async def register_user(self, db: Session, user_data: UserRegister) -> UserResponse:
+    async def register_user(self, db: Session, user_data: Union[UserRegister, CitizenRegister, AdminRegister]) -> UserResponse:
         """Register a new user"""
         # Check if user already exists
         existing_user = db.query(User).filter(User.email == user_data.email).first()
@@ -90,6 +91,7 @@ class AuthService:
         
         # Create user
         user = User(
+            id=str(uuid.uuid4()),
             email=user_data.email,
             password_hash=hashed_password,
             full_name=user_data.full_name,
