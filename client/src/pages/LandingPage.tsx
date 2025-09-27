@@ -6,11 +6,13 @@ import { Users, Shield, AlertTriangle, Clock, Star, MapPin, ArrowRight, Sparkles
 import { useLanguage } from '@/contexts/LanguageContext';
 import LanguageToggle from '@/components/LanguageToggle';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useLocation } from 'wouter';
 
 export default function LandingPage() {
   const [selectedRole, setSelectedRole] = useState<'citizen' | 'admin' | null>(null);
   const [isLoaded, setIsLoaded] = useState(false);
   const { t } = useLanguage();
+  const [, setLocation] = useLocation();
 
   useEffect(() => {
     setIsLoaded(true);
@@ -21,9 +23,9 @@ export default function LandingPage() {
     // Add a small delay for animation before navigation
     setTimeout(() => {
       if (role === 'citizen') {
-        window.location.href = '/citizen/auth';
+        setLocation('/citizen/dashboard');
       } else {
-        window.location.href = '/admin/auth';
+        setLocation('/admin/dashboard');
       }
     }, 300);
   };
@@ -134,14 +136,14 @@ export default function LandingPage() {
             transition={{ duration: 0.6, delay: 0.2 }}
           >
             <motion.img 
-              src="/src/assets/gov-logo.png" 
+              src="/assets/gov-logo.svg" 
               alt="Government Logo" 
               className="w-12 h-12 sm:w-16 sm:h-16 mr-4" 
               whileHover={{ scale: 1.1, rotate: 5 }}
               transition={{ duration: 0.2 }}
             />
             <motion.img 
-              src="/src/assets/crowdcare-logo.png" 
+              src="/assets/crowdcare-logo.svg" 
               alt="CrowdCare Logo" 
               className="w-12 h-12 sm:w-16 sm:h-16 mr-4" 
               whileHover={{ scale: 1.1, rotate: -5 }}

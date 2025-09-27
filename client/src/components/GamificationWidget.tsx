@@ -7,6 +7,7 @@ import { Badge as UIBadge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { ConfettiAnimation } from '@/components/ConfettiAnimation';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { motion, AnimatePresence } from 'framer-motion';
 
 type BadgeItem = {
   code: string;
@@ -33,6 +34,40 @@ export function GamificationWidget() {
   const [badges, setBadges] = useState<BadgeItem[]>([]);
   const [leaders, setLeaders] = useState<Array<{ rank: number; name: string; points: number }>>([]);
   const [confettiKey, setConfettiKey] = useState<number>(0);
+  const [isLoaded, setIsLoaded] = useState(false);
+
+  const widgetVariants = {
+    hidden: { opacity: 0, y: 20, scale: 0.95 },
+    visible: { 
+      opacity: 1, 
+      y: 0, 
+      scale: 1,
+      transition: {
+        duration: 0.5,
+        ease: "easeOut"
+      }
+    },
+    hover: {
+      y: -2,
+      scale: 1.02,
+      transition: {
+        duration: 0.2,
+        ease: "easeOut"
+      }
+    }
+  };
+
+  const itemVariants = {
+    hidden: { opacity: 0, x: -10 },
+    visible: { 
+      opacity: 1, 
+      x: 0,
+      transition: {
+        duration: 0.3,
+        ease: "easeOut"
+      }
+    }
+  };
 
   const { connected } = useGamificationStream({
     onEvent: (e: GamificationEvent) => {
@@ -67,6 +102,7 @@ export function GamificationWidget() {
       setLeaders(data.leaderboard_preview || []);
     } finally {
       setLoading(false);
+      setIsLoaded(true);
     }
   };
 
@@ -82,23 +118,57 @@ export function GamificationWidget() {
   return (
     <div className="relative">
       <ConfettiAnimation trigger={confettiKey} />
-      <Card className="overflow-hidden">
-        <CardContent className="p-3">
-          <div className="flex items-center justify-between gap-3">
-            <div className="min-w-0">
-              <div className="text-sm font-semibold truncate">{name || 'Citizen'}</div>
-              <div className="text-xs text-amber-600 flex items-center gap-1">
-                <span role="img" aria-label="streak">🔥</span>{streak} day streak
-              </div>
-            </div>
-            <div className="text-right">
-              <div className="text-[10px] text-slate-500">Points</div>
-              <div className="text-lg font-bold tabular-nums">{points.toLocaleString()}</div>
-            </div>
-            <Dialog>
-              <DialogTrigger asChild>
-                <button className="text-xs px-2 py-1 rounded bg-slate-100 hover:bg-slate-200">Details</button>
-              </DialogTrigger>
+      <motion.div
+        initial="hidden"
+        animate={isLoaded ? "visible" : "hidden"}
+        whileHover="hover"
+        variants={widgetVariants}
+      >
+        <Card className="overflow-hidden bg-gradient-to-br from-blue-50 to-indigo-100 border-blue-200 hover:border-blue-300 shadow-lg hover:shadow-xl transition-all">
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between gap-4">
+              <motion.div 
+                className="min-w-0"
+                variants={itemVariants}
+              >
+                <motion.div 
+                  className="text-sm font-bold truncate text-gray-800"
+                  whileHover={{ scale: 1.05 }}
+                  transition={{ duration: 0.2 }}
+                >
+                  {name || 'Citizen'}
+                </motion.div>
+                <motion.div 
+                  className="text-xs text-amber-600 flex items-center gap-1 font-medium"
+                  whileHover={{ scale: 1.05 }}
+                  transition={{ duration: 0.2 }}
+                >
+                  <span role="img" aria-label="streak">🔥</span>{streak} day streak
+                </motion.div>
+              </motion.div>
+              <motion.div 
+                className="text-right"
+                variants={itemVariants}
+              >
+                <div className="text-[10px] text-gray-500 font-medium">Points</div>
+                <motion.div 
+                  className="text-lg font-bold tabular-nums text-blue-600"
+                  whileHover={{ scale: 1.1 }}
+                  transition={{ duration: 0.2 }}
+                >
+                  {points.toLocaleString()}
+                </motion.div>
+              </motion.div>
+              <Dialog>
+                <DialogTrigger asChild>
+                  <motion.button 
+                    className="text-xs px-3 py-1.5 rounded-lg bg-white hover:bg-blue-50 border border-gray-200 hover:border-blue-300 text-blue-600 font-medium transition-all"
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                  >
+                    Details
+                  </motion.button>
+                </DialogTrigger>
               <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto">
                 <DialogHeader className="pb-6">
                   <DialogTitle className="text-2xl font-bold text-center">{name || 'Citizen'} · Level {level} · {points.toLocaleString()} pts</DialogTitle>
@@ -172,12 +242,19 @@ export function GamificationWidget() {
                 </div>
               </DialogContent>
             </Dialog>
-          </div>
-          <div className="mt-2">
-            <Progress value={levelPct} />
-          </div>
-        </CardContent>
-      </Card>
+            </div>
+            <motion.div 
+              className="mt-3"
+              variants={itemVariants}
+            >
+              <Progress 
+                value={levelPct} 
+                className="h-2 bg-white/50"
+              />
+            </motion.div>
+          </CardContent>
+        </Card>
+      </motion.div>
     </div>
   );
 }

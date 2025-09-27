@@ -1,5 +1,5 @@
 import express, { type Request, Response, NextFunction } from "express";
-import { registerRoutes } from "./routes";
+import { registerSimpleRoutes } from "./simple-routes";
 import { setupVite, serveStatic, log } from "./vite";
 import { connectToDatabase } from "./db";
 
@@ -41,7 +41,7 @@ app.use((req, res, next) => {
   // Initialize database connection
   await connectToDatabase();
   
-  const server = await registerRoutes(app);
+  const server = await registerSimpleRoutes(app);
 
   app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
     const status = err.status || err.statusCode || 500;
@@ -61,11 +61,30 @@ app.use((req, res, next) => {
   }
 
   // ALWAYS serve the app on the port specified in the environment variable PORT
-  // Other ports are firewalled. Default to 5000 if not specified.
+  // Other ports are firewalled. Default to 3000 if not specified.
   // this serves both the API and the client.
   // It is the only port that is not firewalled.
-  const port = parseInt(process.env.PORT || '5000', 10);
-  server.listen(port, "0.0.0.0", () => {
-    log(`serving on port ${port}`);
-  });
+  const port = parseInt(process.env.PORT || '3000', 10);
+  
+  // For Vercel, we need to handle the case where the server might not need to listen
+  if (process.env.VERCEL) {
+    // In Vercel, the serverless function handles the request
+    log(`Vercel serverless function ready`);
+  } else {
+    // Try different ports if the default is in use
+    const tryPort = (port: number) => {
+      server.listen(port, "0.0.0.0", () => {
+        log(`serving on port ${port}`);
+      }).on('error', (err: any) => {
+        if (err.code === 'EADDRINUSE') {
+          log(`Port ${port} is in use, trying ${port + 1}`);
+          tryPort(port + 1);
+        } else {
+          throw err;
+        }
+      });
+    };
+    
+    tryPort(port);
+  }
 })();

@@ -2,7 +2,7 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import path from "path";
 import express from "express";
-import { storage } from "./mongodb-storage";
+import { getStorage } from "./storage-adapter";
 import { setupAuth, isAuthenticated } from "./replitAuth";
 import { upload, saveUploadedFile, imageToBase64 } from "./services/upload";
 import { analyzeIssue, detectDuplicateIssues } from "./services/openai";
@@ -25,7 +25,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get('/api/auth/user', isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
-      const user = await storage.getUserWithDepartment(userId);
+      const storage = await getStorage();
+      const user = await storage.getUser(userId);
       res.json(user);
     } catch (error) {
       console.error("Error fetching user:", error);
@@ -36,6 +37,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Department routes
   app.get('/api/departments', async (req, res) => {
     try {
+      const storage = await getStorage();
       const departments = await storage.getDepartments();
       res.json(departments);
     } catch (error) {
@@ -45,9 +47,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Issue routes
-  app.post('/api/issues', isAuthenticated, upload.array('images', 5), async (req: any, res) => {
+  app.post('/api/issues', upload.array('images', 5), async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = req.user?.claims?.sub || 'demo-user';
       
       // Validate request body
       const issueData = insertIssueSchema.parse({

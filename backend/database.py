@@ -2,33 +2,52 @@ from motor.motor_asyncio import AsyncIOMotorClient
 from pymongo import MongoClient
 from typing import Optional
 import os
+from sqlalchemy import create_engine
+from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.orm import sessionmaker, Session
+from sqlalchemy.pool import StaticPool
 
-# MongoDB connection
+# MongoDB connection (disabled for now - using SQLite)
 MONGODB_URI = os.getenv("MONGODB_URI", "mongodb://localhost:27017")
 MONGODB_DB = os.getenv("MONGODB_DB", "crowdcare")
 
-# Async MongoDB client for FastAPI
-async_client = AsyncIOMotorClient(MONGODB_URI)
-async_db = async_client[MONGODB_DB]
+# MongoDB clients (disabled for now)
+async_client = None
+async_db = None
+sync_client = None
+sync_db = None
 
-# Sync MongoDB client for background tasks
-sync_client = MongoClient(MONGODB_URI)
-sync_db = sync_client[MONGODB_DB]
+# Collections (disabled for now)
+reports_collection = None
+users_collection = None
+refresh_tokens_collection = None
+department_categories_collection = None
+category_department_mappings_collection = None
+citizen_replies_collection = None
+report_ratings_collection = None
+report_deletions_collection = None
+report_status_history_collection = None
+report_upvotes_collection = None
+report_comments_collection = None
+admin_verifications_collection = None
+face_verifications_collection = None
 
-# Collections
-reports_collection = async_db.reports
-users_collection = async_db.users
-refresh_tokens_collection = async_db.refresh_tokens
-department_categories_collection = async_db.department_categories
-category_department_mappings_collection = async_db.category_department_mappings
-citizen_replies_collection = async_db.citizen_replies
-report_ratings_collection = async_db.report_ratings
-report_deletions_collection = async_db.report_deletions
-report_status_history_collection = async_db.report_status_history
-report_upvotes_collection = async_db.report_upvotes
-report_comments_collection = async_db.report_comments
-admin_verifications_collection = async_db.admin_verifications
-face_verifications_collection = async_db.face_verifications
+# SQLAlchemy configuration for SQLite
+DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./crowdcare.db")
+
+# Create SQLAlchemy engine
+engine = create_engine(
+    DATABASE_URL,
+    connect_args={"check_same_thread": False} if "sqlite" in DATABASE_URL else {},
+    poolclass=StaticPool if "sqlite" in DATABASE_URL else None,
+    echo=False
+)
+
+# Create SessionLocal class
+SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+
+# Create Base class for SQLAlchemy models
+Base = declarative_base()
 
 # Dependency to get database
 async def get_database():
@@ -37,3 +56,11 @@ async def get_database():
 # Dependency to get sync database
 def get_sync_database():
     return sync_db
+
+# Dependency to get SQLAlchemy database session
+def get_db() -> Session:
+    db = SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()

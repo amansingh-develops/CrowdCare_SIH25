@@ -4,6 +4,7 @@ import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { LanguageProvider, useLanguage } from "@/contexts/LanguageContext";
+import { AnimationProvider } from "@/components/AnimationProvider";
 import { useAuth } from "@/hooks/useAuth";
 import LandingPage from "@/pages/LandingPage";
 import CitizenAuth from "@/pages/CitizenAuth";
@@ -38,14 +39,10 @@ function Router() {
       <Route path="/citizen/auth" component={CitizenAuth} />
       <Route path="/admin/auth" component={AdminAuth} />
       
-      {/* Authenticated routes */}
-      {isAuthenticated ? (
-        <>
-          <Route path="/citizen/dashboard" component={CitizenDashboard} />
-          <Route path="/admin/dashboard" component={AdminDashboard} />
-          <Route path="/report" component={ReportPage} />
-        </>
-      ) : null}
+      {/* Dashboard routes - accessible without authentication for demo */}
+      <Route path="/citizen/dashboard" component={CitizenDashboard} />
+      <Route path="/admin/dashboard" component={AdminDashboard} />
+      <Route path="/report" component={ReportPage} />
       
       {/* Fallback to 404 */}
       <Route component={NotFound} />
@@ -57,10 +54,12 @@ function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <LanguageProvider>
-        <TooltipProvider>
-          <Toaster />
-          <Router />
-        </TooltipProvider>
+        <AnimationProvider>
+          <TooltipProvider>
+            <Toaster />
+            <Router />
+          </TooltipProvider>
+        </AnimationProvider>
       </LanguageProvider>
     </QueryClientProvider>
   );

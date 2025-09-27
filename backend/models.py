@@ -1,119 +1,11 @@
-from pydantic import BaseModel, Field
-from typing import Optional, List, Dict, Any
-from datetime import datetime
-from bson import ObjectId
+from sqlalchemy import Column, Integer, String, Text, Boolean, DateTime, Float, UniqueConstraint
+from sqlalchemy.sql import func
+from database import Base
 import enum
 
 class UserRole(enum.Enum):
     CITIZEN = "citizen"
     ADMIN = "admin"
-
-class PyObjectId(ObjectId):
-    @classmethod
-    def __get_validators__(cls):
-        yield cls.validate
-
-    @classmethod
-    def validate(cls, v):
-        if not ObjectId.is_valid(v):
-            raise ValueError("Invalid objectid")
-        return ObjectId(v)
-
-    @classmethod
-    def __modify_schema__(cls, field_schema):
-        field_schema.update(type="string")
-
-class Report(BaseModel):
-    id: PyObjectId = Field(default_factory=PyObjectId, alias="_id")
-    title: str
-    description: Optional[str] = None
-    category: str
-    image_url: Optional[str] = None
-    latitude: float
-    longitude: float
-    
-    # AI-generated fields
-    ai_generated_title: Optional[str] = None
-    ai_generated_description: Optional[str] = None
-    ai_tags: Optional[List[str]] = None
-    
-    # Urgency classification
-    urgency_score: float = 50.0
-    urgency_label: str = "Medium"
-    
-    # MCQ responses
-    mcq_responses: Optional[Dict[str, Any]] = None
-    
-    # Reporter information
-    reporter_id: str
-    
-    # Enhanced status tracking with stages
-    status: str = "reported"  # reported, acknowledged, in_progress, resolved, deleted
-    admin_notes: Optional[str] = None
-    
-    # Status history tracking
-    status_history: Optional[List[Dict[str, Any]]] = None
-    
-    # Deletion tracking
-    is_deleted: bool = False
-    deletion_reason: Optional[str] = None
-    deleted_at: Optional[datetime] = None
-    
-    # Enhanced resolution tracking
-    resolved_by: Optional[str] = None
-    resolved_at: Optional[datetime] = None
-    resolution_image_url: Optional[str] = None
-    resolution_coordinates: Optional[Dict[str, Any]] = None
-    
-    # Timestamps for each status stage
-    reported_at: datetime = Field(default_factory=datetime.utcnow)
-    acknowledged_at: Optional[datetime] = None
-    in_progress_at: Optional[datetime] = None
-    
-    created_at: datetime = Field(default_factory=datetime.utcnow)
-    updated_at: Optional[datetime] = None
-
-    class Config:
-        allow_population_by_field_name = True
-        arbitrary_types_allowed = True
-        json_encoders = {ObjectId: str}
-
-class User(BaseModel):
-    id: PyObjectId = Field(default_factory=PyObjectId, alias="_id")
-    email: str
-    password_hash: str
-    full_name: str
-    mobile_number: Optional[str] = None
-    role: str  # citizen or admin
-    
-    # Admin-specific fields
-    admin_id: Optional[str] = None
-    municipality_name: Optional[str] = None
-    department_name: Optional[str] = None
-    
-    # Account status
-    is_active: bool = True
-    is_verified: bool = False
-    
-    created_at: datetime = Field(default_factory=datetime.utcnow)
-    updated_at: Optional[datetime] = None
-
-    class Config:
-        allow_population_by_field_name = True
-        arbitrary_types_allowed = True
-        json_encoders = {ObjectId: str}
-
-class RefreshToken(BaseModel):
-    id: PyObjectId = Field(default_factory=PyObjectId, alias="_id")
-    user_id: str
-    token: str
-    expires_at: datetime
-    created_at: datetime = Field(default_factory=datetime.utcnow)
-
-    class Config:
-        allow_population_by_field_name = True
-        arbitrary_types_allowed = True
-        json_encoders = {ObjectId: str}
 
 class DepartmentCategory(Base):
     __tablename__ = "department_categories"
@@ -245,5 +137,97 @@ class FaceVerification(Base):
     verified_at = Column(DateTime(timezone=True), server_default=func.now())
 
     def __repr__(self):
-        who = self.admin_id or self.citizen_id or "unknown"
-        return f"<FaceVerification(id={self.id}, report_id={self.report_id}, user='{who}', verified={self.face_verified})>"
+        return (
+            f"<FaceVerification(id={self.id}, report_id={self.report_id}, "
+            f"admin_id='{self.admin_id}', citizen_id='{self.citizen_id}')>"
+        )
+
+# SQLAlchemy models for main application
+class User(Base):
+    __tablename__ = "users"
+    
+    id = Column(String(36), primary_key=True, index=True)
+    email = Column(String(255), unique=True, nullable=False, index=True)
+    password_hash = Column(String(255), nullable=False)
+    full_name = Column(String(255), nullable=False)
+    mobile_number = Column(String(20))
+    role = Column(String(20), nullable=False, default="citizen")  # citizen or admin
+    
+    # Admin-specific fields
+    admin_id = Column(String(50))
+    municipality_name = Column(String(255))
+    department_name = Column(String(255))
+    
+    # Account status
+    is_active = Column(Boolean, default=True)
+    is_verified = Column(Boolean, default=False)
+    
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+    
+    def __repr__(self):
+        return f"<User(id='{self.id}', email='{self.email}', role='{self.role}')>"
+
+class Report(Base):
+    __tablename__ = "reports"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    title = Column(String(500), nullable=False)
+    description = Column(Text)
+    category = Column(String(100), nullable=False)
+    image_url = Column(String(500))
+    latitude = Column(Float, nullable=False)
+    longitude = Column(Float, nullable=False)
+    
+    # AI-generated fields
+    ai_generated_title = Column(String(500))
+    ai_generated_description = Column(Text)
+    ai_tags = Column(Text)  # JSON string
+    
+    # Urgency classification
+    urgency_score = Column(Float, default=50.0)
+    urgency_label = Column(String(20), default="Medium")
+    
+    # MCQ responses
+    mcq_responses = Column(Text)  # JSON string
+    
+    # Reporter information
+    reporter_id = Column(String(36), nullable=False, index=True)
+    
+    # Enhanced status tracking with stages
+    status = Column(String(20), default="reported")  # reported, acknowledged, in_progress, resolved, deleted
+    admin_notes = Column(Text)
+    
+    # Deletion tracking
+    is_deleted = Column(Boolean, default=False)
+    deletion_reason = Column(String(255))
+    deleted_at = Column(DateTime(timezone=True))
+    
+    # Enhanced resolution tracking
+    resolved_by = Column(String(36))
+    resolved_at = Column(DateTime(timezone=True))
+    resolution_image_url = Column(String(500))
+    resolution_coordinates = Column(Text)  # JSON string
+    
+    # Timestamps for each status stage
+    reported_at = Column(DateTime(timezone=True), server_default=func.now())
+    acknowledged_at = Column(DateTime(timezone=True))
+    in_progress_at = Column(DateTime(timezone=True))
+    
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+    
+    def __repr__(self):
+        return f"<Report(id={self.id}, title='{self.title}', status='{self.status}')>"
+
+class RefreshToken(Base):
+    __tablename__ = "refresh_tokens"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(String(36), nullable=False, index=True)
+    token = Column(String(500), nullable=False, unique=True)
+    expires_at = Column(DateTime(timezone=True), nullable=False)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    
+    def __repr__(self):
+        return f"<RefreshToken(id={self.id}, user_id='{self.user_id}')>"
